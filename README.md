@@ -4,8 +4,6 @@ Simple dynamic data driven ecs
 
 ## Example:
 
-Considering thoses structs and classes:
-
 ```cpp
 #include "Silva.hpp"
 #include <iostream>
@@ -46,8 +44,7 @@ int main()
         .emplace_r<Other>((Other) { 1 })
         .emplace_r<Test>(1, 2, 3);
 
-    r.emplace<Velocity>(e2, 1, 2)
-        .emplace_r<Some>(0);
+    r.emplace<Velocity>(e2, 1, 2).emplace_r<Some>(0);
 
     // Add a system and the conresponding update function
     r.addSystem<Some>("test").setSystemUpdate(
@@ -56,7 +53,10 @@ int main()
             std::cout << e << " " << v.a << std::endl;
             v.a++;
         });
-    r.update().update().update().update(); // Call the update of the test System 4 times
+    r.update()
+        .update()
+        .update()
+        .update(); // Call the update of the test System 4 times
 
     // Views are slices equivalent
     // They can be used to gather some informations
@@ -64,20 +64,16 @@ int main()
     // while using them because it will invalidate the view
     silva::View<Velocity&, Some&> v(r);
 
-
     // You can also avoid to specify the Entity parameter
-    v.each(
-        [](const Velocity& v, const Some& s) {
-            std::cout << "Each: " << "Entity(Noid)" << s.a << std::endl;
-        }
-    );
+    v.each([](const Velocity& v, const Some& s) {
+        std::cout << "Each: "
+                  << "Entity(Noid)" << s.a << std::endl;
+    });
 
-    v.eachEntity(
-        [](const silva::Entity& e, const Velocity& v, Some& s) {
-            std::cout << "Each With Entity: " << e << " " << s.a << std::endl;
-            s.a++;
-        }
-    );
+    v.eachEntity([](const silva::Entity& e, const Velocity& v, Some& s) {
+        std::cout << "Each With Entity: " << e << " " << s.a << std::endl;
+        s.a++;
+    });
 
     // You can use ranged for loops
     for (auto& [e, v, s] : v) {

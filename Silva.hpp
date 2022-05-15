@@ -1,39 +1,43 @@
 #pragma once
 
-#include <memory>
-#include <vector>
-#include <unordered_map>
 #include <any>
+#include <exception>
 #include <functional>
+#include <memory>
+#include <ostream>
 #include <stack>
 #include <string>
-#include <exception>
-#include <ostream>
+#include <unordered_map>
+#include <vector>
 
 namespace silva {
 
+/**
+ * @brief Base class for all the exceptions
+ */
+class Error : public std::exception {
+private:
     /**
-     * @brief Base class for all the exceptions
+     * @brief The error message
      */
-    class Error : public std::exception {
-        private:
-            /**
-             * @brief The error message
-             */
-            std::string _msg;
-        public:
-            /**
-             * @brief Construct a new Error object
-             * @param msg The error message
-             */
-            Error(const std::string& msg) : _msg(msg) {}
+    std::string _msg;
 
-            /**
-             * @brief Get the error message
-             * @return const char* The error message
-             */
-            virtual const char* what() const noexcept override { return _msg.c_str(); }
-    };
+public:
+    /**
+     * @brief Construct a new Error object
+     * @param msg The error message
+     */
+    Error(const std::string& msg)
+        : _msg(msg)
+    {
+    }
+
+    /**
+     * @brief Get the error message
+     * @return const char* The error message
+     */
+    virtual const char* what() const noexcept override { return _msg.c_str(); }
+};
 
 namespace priv {
 
@@ -41,7 +45,7 @@ namespace priv {
  * @brief Sparse array size used by default
  */
 #ifndef SPARSE_ARRAY_BASE
-    #define SPARSE_ARRAY_BASE 30
+#define SPARSE_ARRAY_BASE 30
 #endif
 
     /**
@@ -72,7 +76,8 @@ namespace priv {
         }
 
         /**
-         * @brief Set the size of the registry of _baseSize and fill it with null values
+         * @brief Set the size of the registry of _baseSize and fill it with
+         * null values
          */
         void clear()
         {
@@ -82,7 +87,7 @@ namespace priv {
                 for (unsigned int i = 0; i < _baseSize; i++)
                     _registry.push_back(std::unique_ptr<T>(nullptr));
             } catch (std::exception& e) {
-                throw Error(std::string("clear(): ") +  e.what());
+                throw Error(std::string("clear(): ") + e.what());
             }
         }
 
@@ -99,7 +104,8 @@ namespace priv {
                     _registry.push_back(std::unique_ptr<T>(nullptr));
                 }
             } catch (std::exception& e) {
-                throw Error(std::string("resize(") + std::to_string(size) + "): " +  e.what());
+                throw Error(std::string("resize(") + std::to_string(size)
+                    + "): " + e.what());
             }
         }
 
@@ -114,8 +120,8 @@ namespace priv {
                 _registry.at(i) = std::move(elem);
             } catch (std::exception& e) {
                 throw Error(std::string("set(0x")
-                            + std::to_string(static_cast<size_t>(elem.get()))
-                            + ", " + std::to_string(i) + "): " +  e.what());
+                    + std::to_string(static_cast<size_t>(elem.get())) + ", "
+                    + std::to_string(i) + "): " + e.what());
             }
         }
 
@@ -130,8 +136,8 @@ namespace priv {
                 _registry.at(i) = std::move(elem);
             } catch (std::exception& e) {
                 throw Error(std::string("set(0x")
-                            + std::to_string(static_cast<size_t>(elem.get()))
-                            + ", " + std::to_string(i) + "): " +  e.what());
+                    + std::to_string(static_cast<size_t>(elem.get())) + ", "
+                    + std::to_string(i) + "): " + e.what());
             }
         }
 
@@ -146,8 +152,8 @@ namespace priv {
                 _registry.at(i) = std::unique_ptr<T>(elem);
             } catch (std::exception& e) {
                 throw Error(std::string("set(0x")
-                            + std::to_string(reinterpret_cast<size_t>(elem))
-                            + ", " + std::to_string(i) + "): " +  e.what());
+                    + std::to_string(reinterpret_cast<size_t>(elem)) + ", "
+                    + std::to_string(i) + "): " + e.what());
             }
         }
 
@@ -162,13 +168,14 @@ namespace priv {
                 _registry.at(i) = std::make_unique<T>(elem);
             } catch (std::exception& e) {
                 throw Error(std::string("set(")
-                            + std::to_string(static_cast<size_t>(&elem))
-                            + ", " + std::to_string(i) + "): " +  e.what());
+                    + std::to_string(static_cast<size_t>(&elem)) + ", "
+                    + std::to_string(i) + "): " + e.what());
             }
         }
 
         /**
-         * @brief Set the value at the given index (T need to be constructible with T())
+         * @brief Set the value at the given index (T need to be constructible
+         * with T())
          * @param i The index to set the value at
          */
         void set(const std::size_t& i)
@@ -176,8 +183,8 @@ namespace priv {
             try {
                 _registry.at(i) = std::make_unique<T>();
             } catch (std::exception& e) {
-                throw Error(std::string("set(")
-                            + std::to_string(i) + "): " +  e.what());
+                throw Error(
+                    std::string("set(") + std::to_string(i) + "): " + e.what());
             }
         }
 
@@ -191,8 +198,8 @@ namespace priv {
             try {
                 _registry.at(i) = std::unique_ptr<T>(nullptr);
             } catch (std::exception& e) {
-                throw Error(std::string("unset(")
-                            + std::to_string(i) + "): " +  e.what());
+                throw Error(std::string("unset(") + std::to_string(i)
+                    + "): " + e.what());
             }
         }
 
@@ -205,21 +212,23 @@ namespace priv {
         {
             if (isSet(i))
                 return *_registry.at(i);
-            throw Error("Trying to get a value at an unset index: " + std::to_string(i));
+            throw Error("Trying to get a value at an unset index: "
+                + std::to_string(i));
         }
 
         /**
          * @brief Get the value at the given index
          * @param i The index to get the value at
-         * @return std::unique_ptr<T>& The object value container at the given index
+         * @return std::unique_ptr<T>& The object value container at the given
+         * index
          */
         std::unique_ptr<T>& getO(const std::size_t& i)
         {
             try {
                 return _registry.at(i);
             } catch (std::exception& e) {
-                throw Error(std::string("getO(")
-                            + std::to_string(i) + "): " +  e.what());
+                throw Error(std::string("getO(") + std::to_string(i)
+                    + "): " + e.what());
             }
         }
 
@@ -233,8 +242,8 @@ namespace priv {
             try {
                 return _registry.at(i) != nullptr;
             } catch (std::exception& e) {
-                throw Error(std::string("isSet(")
-                            + std::to_string(i) + "): " +  e.what());
+                throw Error(std::string("isSet(") + std::to_string(i)
+                    + "): " + e.what());
             }
         }
 
@@ -415,7 +424,8 @@ namespace priv {
              * @brief Compare two iterators
              * @param other The other iterator to compare to
              * @return true The left iterator index is less than the right
-             * @return false The left iterator index is greater or equal to the right
+             * @return false The left iterator index is greater or equal to the
+             * right
              */
             bool operator<(const Iterator& other) const
             {
@@ -425,8 +435,10 @@ namespace priv {
             /**
              * @brief Compare two iterators
              * @param other The other iterator to compare to
-             * @return true The left iterator index is greater than the the right
-             * @return false The left iterator index is less or equal to the right
+             * @return true The left iterator index is greater than the the
+             * right
+             * @return false The left iterator index is less or equal to the
+             * right
              */
             bool operator>(const Iterator& other) const
             {
@@ -436,7 +448,8 @@ namespace priv {
             /**
              * @brief Compare two iterators
              * @param other The other iterator to compare to
-             * @return true The left iterator index is less than or equal to the right
+             * @return true The left iterator index is less than or equal to the
+             * right
              * @return false The left iterator index is greater than the right
              */
             bool operator<=(const Iterator& other) const
@@ -447,7 +460,8 @@ namespace priv {
             /**
              * @brief Compare two iterators
              * @param other The other iterator to compare to
-             * @return true The left iterator index is greater than or equal to the right
+             * @return true The left iterator index is greater than or equal to
+             * the right
              * @return false The left iterator index is less than the right
              */
             bool operator>=(const Iterator& other) const
@@ -457,7 +471,7 @@ namespace priv {
 
             /**
              * @brief Tells if the object at the current index is valid
-             * 
+             *
              * @return true The object at the current index is valid
              * @return false The object at the current index is invalid
              */
@@ -482,7 +496,8 @@ namespace priv {
             void set(std::unique_ptr<T>& elem) { _array.set(elem, _index); }
 
             /**
-             * @brief Unset the given object at the current index of the Iterator
+             * @brief Unset the given object at the current index of the
+             * Iterator
              */
             void unset() { _array.unset(_index); }
         };
@@ -506,43 +521,43 @@ namespace silva {
 
 /**
  * @brief Fwd
- * 
+ *
  */
 class registry;
 
 /**
  * @brief Fwd
- * 
+ *
  */
 struct Entity;
 
 /**
  * @brief Id of an Entity
- * 
+ *
  */
 using EntityId = std::size_t;
 
 /**
  * @brief Type of a Component
- * 
+ *
  */
 using Component = std::any;
 
 /**
  * @brief Index of a Component
- * 
+ *
  */
 using ComponentIndex = std::size_t;
 
 /**
  * @brief Type for hash of a Component typename
- * 
+ *
  */
 using TypeNameId = const char*;
 
 /**
  * @brief Function to update a system
- * 
+ *
  */
 using SystemUpdater = std::function<void(const Entity&, registry&)>;
 
@@ -574,10 +589,7 @@ struct Entity {
      * @return true The Entities are equal
      * @return false The Entities are not equal
      */
-    bool operator==(const Entity& other)
-    {
-        return id == other.id;
-    }
+    bool operator==(const Entity& other) { return id == other.id; }
 
     /**
      * @brief Tells if the Entity is not equal to another Entity
@@ -585,14 +597,11 @@ struct Entity {
      * @return true The Entities are not equal
      * @return false The Entities are equal
      */
-    bool operator!=(const Entity& other)
-    {
-        return id != other.id;
-    }
+    bool operator!=(const Entity& other) { return id != other.id; }
 
     /**
      * @brief Represent the Entity as a string to be used in ostreams
-     * 
+     *
      * @param os The ostream to write to
      * @param e The Entity to represent
      * @return std::ostream& The ostream
@@ -671,11 +680,11 @@ namespace priv {
 
         /**
          * @brief tries to see if the given entity should be part of the system
-         *        If the entity has all the dependencies of the system and is not already part of the system
-         *        the entity is added to the system
-         *        If the entity is already part of the system and has not all the dependencies
-         *        the entity is removed from the system.
-         *        Otherwise it does nothing
+         *        If the entity has all the dependencies of the system and is
+         * not already part of the system the entity is added to the system If
+         * the entity is already part of the system and has not all the
+         * dependencies the entity is removed from the system. Otherwise it does
+         * nothing
          * @param r The registry
          * @param e The entity to check
          */
@@ -710,24 +719,24 @@ namespace priv {
 
 /**
  * @brief The registry base size for the SparseArray allocator of the entities
- * 
+ *
  */
-#ifndef REGISTRY_ENTITY_SIZE 
-    #define REGISTRY_ENTITY_SIZE 8192
+#ifndef REGISTRY_ENTITY_SIZE
+#define REGISTRY_ENTITY_SIZE 8192
 #endif
 
 /**
  * @brief The registry base size for the SparseArray allocator of the Components
- * 
+ *
  */
 #ifndef REGISTRY_COMPONENT_SIZE
-    #define REGISTRY_COMPONENT_SIZE 50
+#define REGISTRY_COMPONENT_SIZE 50
 #endif
 
 /**
  * @brief The registry is the container of all the entities and components
  *        It also contains the systems that are updated at each call of update
- * 
+ *
  */
 class registry {
 private:
@@ -761,12 +770,14 @@ private:
     std::unordered_map<std::string, std::unique_ptr<priv::System>> _systems;
 
     /**
-     * @brief The last used entity (used to avoid passing the entity each time as a parameter)
+     * @brief The last used entity (used to avoid passing the entity each time
+     * as a parameter)
      */
     Entity _lastUsedEntity = Entity(0);
 
     /**
-     * @brief The last used system (used to avoid passing the system name each time as a parameter)
+     * @brief The last used system (used to avoid passing the system name each
+     * time as a parameter)
      */
     std::string _lastUsedSystem = "";
 
@@ -821,15 +832,14 @@ private:
     }
 
 public:
-
     /**
      * @brief Loads the dependencies of the given types
      * @tparam T The type of the system
      * @tparam ...Args The other types of the dependencies
      * @return std::vector<ComponentIndex>& The dependencies of the system
      */
-    template<typename T, typename... Args,
-            typename std::enable_if<sizeof...(Args) != 0>::type* = nullptr>
+    template <typename T, typename... Args,
+        typename std::enable_if<sizeof...(Args) != 0>::type* = nullptr>
     std::vector<ComponentIndex>& getDepsList(std::vector<ComponentIndex>& deps)
     {
         deps.push_back(_cti<T>());
@@ -841,8 +851,8 @@ public:
      * @tparam T The type of the system
      * @return std::vector<ComponentIndex>& The dependencies of the system
      */
-    template<typename T, typename... Args,
-            typename std::enable_if<sizeof...(Args) == 0>::type* = nullptr>
+    template <typename T, typename... Args,
+        typename std::enable_if<sizeof...(Args) == 0>::type* = nullptr>
     std::vector<ComponentIndex>& getDepsList(std::vector<ComponentIndex>& deps)
     {
         deps.push_back(_cti<T>());
@@ -853,7 +863,8 @@ public:
      * @brief Checks wheter the given Entity has the given Component
      * @param e The entity to check
      * @param component The component to check
-     * @param updateLast Used to avoid passing the entity each time as a parameter (if true, _lastUsedEntity is updated to e)
+     * @param updateLast Used to avoid passing the entity each time as a
+     * parameter (if true, _lastUsedEntity is updated to e)
      * @return true if the entity has the component, false otherwise
      * @return false if the entity has the component, true otherwise
      */
@@ -878,7 +889,8 @@ public:
     /**
      * @brief Returns the Component of the given Entity
      * @param e The entity to get the component from
-     * @param updateLast Used to avoid passing the entity each time as a parameter (if true, _lastUsedEntity is updated to e)
+     * @param updateLast Used to avoid passing the entity each time as a
+     * parameter (if true, _lastUsedEntity is updated to e)
      * @tparam The type of the component
      * @return true if the entity has the component, false otherwise
      * @return false if the entity has the component, true otherwise
@@ -895,8 +907,7 @@ public:
      * @return true if the entity has the component, false otherwise
      * @return false if the entity has the component, true otherwise
      */
-    template<typename T>
-    bool has(const bool& updateLast = true)
+    template <typename T> bool has(const bool& updateLast = true)
     {
         return has(_lastUsedEntity, _cti<T>(), updateLast);
     }
@@ -904,7 +915,8 @@ public:
     /**
      * @brief Returns the Component of the given Entity
      * @param e The entity to get the component from
-     * @param updateLast Used to avoid passing the entity each time as a parameter (if true, _lastUsedEntity is updated to e)
+     * @param updateLast Used to avoid passing the entity each time as a
+     * parameter (if true, _lastUsedEntity is updated to e)
      * @tparam The type of the component
      * @return T& The component of the entity
      */
@@ -934,12 +946,15 @@ public:
             if (_lastUsedEntity.id + 1 >= _entities.size()) {
                 _entities.resize(REGISTRY_ENTITY_SIZE);
             }
-            _entities.set(new priv::SparseArray<Component>(REGISTRY_COMPONENT_SIZE), _lastUsedEntity.id);
+            _entities.set(
+                new priv::SparseArray<Component>(REGISTRY_COMPONENT_SIZE),
+                _lastUsedEntity.id);
             _lastEntityId++;
             return _lastUsedEntity;
         }
         _lastUsedEntity = Entity(_removedEntitiesIds.top());
-        _entities.set(new priv::SparseArray<Component>(REGISTRY_COMPONENT_SIZE), _lastUsedEntity.id);
+        _entities.set(new priv::SparseArray<Component>(REGISTRY_COMPONENT_SIZE),
+            _lastUsedEntity.id);
         _removedEntitiesIds.pop();
         return _lastUsedEntity;
     }
@@ -965,7 +980,8 @@ public:
     /**
      * @brief add a new System of the given tag
      * @param tag The tag of the system
-     * @param updateLast Used to avoid passing the system each time as a parameter (if true, _lastUsedSystem is updated to sys)
+     * @param updateLast Used to avoid passing the system each time as a
+     * parameter (if true, _lastUsedSystem is updated to sys)
      * @tparam T The first type of the system dependencies
      * @tparam Args... The other types of the dependencies
      * @return registry& The registry to chain the calls
@@ -1021,7 +1037,8 @@ public:
      * @brief Set the updater function of the given System
      * @param tag The tag of the system
      * @param f The function to set
-     * @param updateLast Used to avoid passing the system each time as a parameter (if true, _lastUsedSystem is updated to sys)
+     * @param updateLast Used to avoid passing the system each time as a
+     * parameter (if true, _lastUsedSystem is updated to sys)
      * @return registry& The registry to chain the calls
      */
     registry& setSystemUpdate(
@@ -1044,7 +1061,8 @@ public:
     }
 
     /**
-     * @brief Calls emplace on the last used Entity (Is used to chain emplace calls)
+     * @brief Calls emplace on the last used Entity (Is used to chain emplace
+     * calls)
      * @tparam T The type of the component
      * @tparam Args... The types of the arguments
      * @param args The arguments of the emplace call
@@ -1097,11 +1115,10 @@ namespace priv {
 
     /**
      * @brief tries to see if the given entity should be part of the system
-     *        If the entity has all the dependencies of the system and is not already part of the system
-     *        the entity is added to the system
-     *        If the entity is already part of the system and has not all the dependencies
-     *        the entity is removed from the system.
-     *        Otherwise it does nothing
+     *        If the entity has all the dependencies of the system and is not
+     * already part of the system the entity is added to the system If the
+     * entity is already part of the system and has not all the dependencies the
+     * entity is removed from the system. Otherwise it does nothing
      * @param r The registry
      * @param e The entity to check
      */
@@ -1121,26 +1138,20 @@ namespace priv {
 }
 
 /**
- * @brief A view is a set of entities that can be filtered by a set of components
- *        The view is always constant and should not be used to modify the registry
- *        (or to remove entities)
- *        (to modify the registry, use the systems or the registry itself)
- * 
+ * @brief A view is a set of entities that can be filtered by a set of
+ * components The view is always constant and should not be used to modify the
+ * registry (or to remove entities) (to modify the registry, use the systems or
+ * the registry itself)
+ *
  * @tparam T The first type of the components
  * @tparam Args... The other types of the components
  */
-template<typename T, typename... Args>
-class View
-{
+template <typename T, typename... Args> class View {
 private:
     /**
      * @brief The registry that the view is based on
      */
-    std::vector<
-        std::unique_ptr<
-            std::tuple<Entity, T&, Args&...>
-        >
-    > _tuple;
+    std::vector<std::unique_ptr<std::tuple<Entity, T&, Args&...>>> _tuple;
 
 public:
     /**
@@ -1163,9 +1174,7 @@ public:
                 Entity e(id);
                 _tuple.push_back(
                     std::make_unique<std::tuple<Entity, T&, Args&...>>(
-                       e, r.get<T>(e), r.get<Args>(e)...
-                    )
-                );
+                        e, r.get<T>(e), r.get<Args>(e)...));
             }
         }
     }
@@ -1173,31 +1182,26 @@ public:
     /**
      * @brief Apply the given function to each entity in the view
      */
-    template<typename F>
-    void eachEntity(F f)
+    template <typename F> void eachEntity(F f)
     {
         for (const auto& t : _tuple)
-            f(std::forward<Entity>(std::get<0>(*t)),
-              std::get<1>(*t),
-              std::forward<Args&>(std::get<2>(*t))...);
+            f(std::forward<Entity>(std::get<0>(*t)), std::get<1>(*t),
+                std::forward<Args&>(std::get<2>(*t))...);
     }
 
     /**
      * @brief Apply the given function to each entity in the view
      */
-    template<typename F>
-    void each(F f)
+    template <typename F> void each(F f)
     {
         for (const auto& t : _tuple)
-            f(std::get<1>(*t),
-              std::forward<Args&>(std::get<2>(*t))...);
+            f(std::get<1>(*t), std::forward<Args&>(std::get<2>(*t))...);
     }
 
     /**
      * @brief Iterator based on the view
      */
-    class Iterator
-    {
+    class Iterator {
     private:
         /**
          * @brief Current index
@@ -1207,9 +1211,9 @@ public:
         /**
          * @brief A reference to the view
          */
-        const std::vector<
-            std::unique_ptr<std::tuple<Entity, T&, Args&...>
-            >>& _tuple;
+        const std::vector<std::unique_ptr<std::tuple<Entity, T&, Args&...>>>&
+            _tuple;
+
     public:
         /**
          * @brief Construct a new Iterator object
@@ -1217,9 +1221,10 @@ public:
          * @param i The starting index
          */
         Iterator(const std::vector<
-            std::unique_ptr<std::tuple<Entity, T&, Args&...>
-            >>& tuple, std::size_t i)
-            : _i(i), _tuple(tuple)
+                     std::unique_ptr<std::tuple<Entity, T&, Args&...>>>& tuple,
+            std::size_t i)
+            : _i(i)
+            , _tuple(tuple)
         {
             if (_i >= _tuple.size())
                 _i = _tuple.size();
@@ -1300,10 +1305,7 @@ public:
          * @return true The two iterators are not equal
          * @return false The two iterators are equal
          */
-        bool operator!=(const Iterator& other) const
-        {
-            return _i != other._i;
-        }
+        bool operator!=(const Iterator& other) const { return _i != other._i; }
 
         /**
          * @brief Compares two iterators
@@ -1311,51 +1313,42 @@ public:
          * @return true The two iterators are equal
          * @return false The two iterators are not equal
          */
-        bool operator==(const Iterator& other) const
-        {
-            return _i == other._i;
-        }
+        bool operator==(const Iterator& other) const { return _i == other._i; }
 
         /**
          * @brief Gets the current entity and its components
-         * @return std::tuple<Entity, T&, Args&...> The current entity and its components
+         * @return std::tuple<Entity, T&, Args&...> The current entity and its
+         * components
          */
         std::tuple<Entity, T&, Args&...>& operator*()
         {
             try {
                 return *_tuple.at(_i);
             } catch (const std::exception& e) {
-                throw Error(std::string("operator*(): invalid iterator: ") + e.what());
+                throw Error(
+                    std::string("operator*(): invalid iterator: ") + e.what());
             }
         }
 
         /**
          * @brief Gets the current entity and its components
-         * @return std::tuple<Entity, T&, Args&...> The current entity and its components
+         * @return std::tuple<Entity, T&, Args&...> The current entity and its
+         * components
          */
-        std::tuple<Entity, T&, Args&...>& operator->()
-        {
-            return *this;
-        }
+        std::tuple<Entity, T&, Args&...>& operator->() { return *this; }
     };
 
     /**
      * @brief Returns an iterator to the first entity of the view
      * @return Iterator An iterator to the first entity of the view
      */
-    Iterator begin()
-    {
-        return Iterator(_tuple, 0);
-    }
+    Iterator begin() { return Iterator(_tuple, 0); }
 
     /**
      * @brief Returns an iterator to the last entity of the view
      * @return Iterator An iterator to the last entity of the view
      */
-    Iterator end()
-    {
-        return Iterator(_tuple, _tuple.size());
-    }
+    Iterator end() { return Iterator(_tuple, _tuple.size()); }
 };
 
 } // namespace silva
