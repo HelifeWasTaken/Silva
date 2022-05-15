@@ -716,7 +716,7 @@ namespace priv {
          */
         void onEntityDelete(const Entity& e)
         {
-            const size_t oldSize = _entities.size();
+            const std::size_t oldSize = _entities.size();
             _entities.erase(std::remove(_entities.begin(), _entities.end(), e),
                 _entities.end());
             const std::size_t offset = oldSize - _entities.size();
