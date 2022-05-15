@@ -72,7 +72,8 @@ namespace priv {
      * @brief A Sparse array is a dynamic array providing null posibilities
      * @tparam T Type of the array
      */
-    template <typename T> class SparseArray {
+    template <typename T>
+    class SparseArray {
     private:
         /**
          * @brief The base size of the array
@@ -858,7 +859,8 @@ private:
      *        If the type is not registered yet, it registers it
      * @return ComponentIndex The index of the component
      */
-    template <typename T> ComponentIndex _cti()
+    template <typename T>
+    ComponentIndex _cti()
     {
         TypeNameId name = typeid(T).name();
         try {
@@ -878,7 +880,8 @@ private:
      * @tparam T The type of the dependency
      * @return registry& The registry to chain the calls
      */
-    template <typename T> registry& _addSystemDeps(priv::System& sys)
+    template <typename T>
+    registry& _addSystemDeps(priv::System& sys)
     {
         sys.addDependency(_cti<T>());
         for (unsigned int i = 0; i < _lastEntityId; i++)
@@ -976,7 +979,8 @@ public:
      * @return true if the entity has the component, false otherwise
      * @return false if the entity has the component, true otherwise
      */
-    template <typename T> bool has(const bool& updateLast = true)
+    template <typename T>
+    bool has(const bool& updateLast = true)
     {
         return has(_lastUsedEntity, _cti<T>(), updateLast);
     }
@@ -989,7 +993,8 @@ public:
      * @tparam The type of the component
      * @return T& The component of the entity
      */
-    template <typename T> T& get(const Entity& e, const bool& updateLast = true)
+    template <typename T>
+    T& get(const Entity& e, const bool& updateLast = true)
     {
         if (updateLast)
             _lastUsedEntity = e;
@@ -1001,7 +1006,8 @@ public:
      * @tparam T The type of the component
      * @return T& The component of the entity
      */
-    template <typename T> T& get() { return get<T>(_lastUsedEntity, false); }
+    template <typename T>
+    T& get() { return get<T>(_lastUsedEntity, false); }
 
     /**
      * @brief Creates a new Entity and returns it
@@ -1085,7 +1091,8 @@ public:
      * @tparam Args... The other types of the dependencies
      * @return registry& The registry to chain the calls
      */
-    template <typename T, typename... Args> registry& addSystemDeps()
+    template <typename T, typename... Args>
+    registry& addSystemDeps()
     {
         return addSystemDeps<T, Args...>(_lastUsedSystem, false);
     }
@@ -1136,7 +1143,8 @@ public:
      * @param args The arguments of the emplace call
      * @return registry& The registry to chain the calls
      */
-    template <typename T, typename... Args> registry& emplace_r(Args&&... args)
+    template <typename T, typename... Args>
+    registry& emplace_r(Args&&... args)
     {
         return emplace<T, Args...>(
             _lastUsedEntity, std::forward<Args>(args)...);
@@ -1214,7 +1222,8 @@ namespace priv {
  * @tparam T The first type of the components
  * @tparam Args... The other types of the components
  */
-template <typename T, typename... Args> class View {
+template <typename T, typename... Args>
+class View {
 private:
     /**
      * @brief The registry that the view is based on
@@ -1250,7 +1259,8 @@ public:
     /**
      * @brief Apply the given function to each entity in the view
      */
-    template <typename F> void eachEntity(F f)
+    template <typename F>
+    void eachEntity(F f)
     {
         for (const auto& t : _tuple)
             f(std::forward<Entity>(std::get<0>(*t)), std::get<1>(*t),
@@ -1260,7 +1270,8 @@ public:
     /**
      * @brief Apply the given function to each entity in the view
      */
-    template <typename F> void each(F f)
+    template <typename F>
+    void each(F f)
     {
         for (const auto& t : _tuple)
             f(std::get<1>(*t), std::forward<Args&>(std::get<2>(*t))...);
