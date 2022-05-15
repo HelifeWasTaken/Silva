@@ -617,6 +617,12 @@ struct Entity {
     {
     }
 
+    Entity& operator=(const Entity& other)
+    {
+        id = other.id;
+        return *this;
+    }
+
     /**
      * @brief Tells if the Entity is equal to another Entity
      * @param other The other Entity to compare to
