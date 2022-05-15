@@ -104,9 +104,9 @@ namespace priv {
             try {
                 _registry.clear();
                 _registry.reserve(_baseSize);
-                for (unsigned int i = 0; i < _baseSize; i++)
+                for (std::size_t i = 0; i < _baseSize; i++)
                     _registry.push_back(std::unique_ptr<T>(nullptr));
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 throw Error(std::string("clear(): ") + e.what());
             }
         }
@@ -120,10 +120,10 @@ namespace priv {
         {
             try {
                 _registry.reserve(_registry.size() + size);
-                for (unsigned int i = 0; i < size; i++) {
+                for (std::size_t i = 0; i < size; i++) {
                     _registry.push_back(std::unique_ptr<T>(nullptr));
                 }
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 throw Error(std::string("resize(") + std::to_string(size)
                     + "): " + e.what());
             }
@@ -138,7 +138,7 @@ namespace priv {
         {
             try {
                 _registry.at(i) = std::move(elem);
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 throw Error(std::string("set(0x")
                     + std::to_string(static_cast<size_t>(elem.get())) + ", "
                     + std::to_string(i) + "): " + e.what());
@@ -154,7 +154,7 @@ namespace priv {
         {
             try {
                 _registry.at(i) = std::move(elem);
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 throw Error(std::string("set(0x")
                     + std::to_string(static_cast<size_t>(elem.get())) + ", "
                     + std::to_string(i) + "): " + e.what());
@@ -170,7 +170,7 @@ namespace priv {
         {
             try {
                 _registry.at(i) = std::unique_ptr<T>(elem);
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 throw Error(std::string("set(0x")
                     + std::to_string(reinterpret_cast<size_t>(elem)) + ", "
                     + std::to_string(i) + "): " + e.what());
@@ -186,7 +186,7 @@ namespace priv {
         {
             try {
                 _registry.at(i) = std::make_unique<T>(elem);
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 throw Error(std::string("set(")
                     + std::to_string(static_cast<size_t>(&elem)) + ", "
                     + std::to_string(i) + "): " + e.what());
@@ -202,7 +202,7 @@ namespace priv {
         {
             try {
                 _registry.at(i) = std::make_unique<T>();
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 throw Error(
                     std::string("set(") + std::to_string(i) + "): " + e.what());
             }
@@ -229,6 +229,19 @@ namespace priv {
          * @return T& The value at the given index
          */
         T& get(const std::size_t& i)
+        {
+            if (isSet(i))
+                return *_registry.at(i);
+            throw Error("Trying to get a value at an unset index: "
+                + std::to_string(i));
+        }
+
+        /**
+         * @brief Get the value at the given index
+         * @param i The index to get the value at
+         * @return const T& The value at the given index
+         */
+        const T& cget(const std::size_t& i) const
         {
             if (isSet(i))
                 return *_registry.at(i);
@@ -309,7 +322,7 @@ namespace priv {
             /**
              * @brief Advance the iterator of N indexes
              */
-            void _advance(std::size_t n)
+            void _advance(const std::size_t& n)
             {
                 for (std::size_t i = 0; i < n && _index <= _array.size();
                      i++, _index++)
@@ -319,7 +332,7 @@ namespace priv {
             /**
              * @brief Retreat the iterator of N indexes
              */
-            void _retreat(std::size_t n)
+            void _retreat(const std::size_t& n)
             {
                 for (std::size_t i = 0; i < n && _index > 0; i++, _index--)
                     ;
@@ -609,7 +622,7 @@ struct Entity {
      * @return true The Entities are equal
      * @return false The Entities are not equal
      */
-    bool operator==(const Entity& other) { return id == other.id; }
+    bool operator==(const Entity& other) const { return id == other.id; }
 
     /**
      * @brief Tells if the Entity is not equal to another Entity
@@ -617,7 +630,7 @@ struct Entity {
      * @return true The Entities are not equal
      * @return false The Entities are equal
      */
-    bool operator!=(const Entity& other) { return id != other.id; }
+    bool operator!=(const Entity& other) const { return id != other.id; }
 
     /**
      * @brief Represent the Entity as a string to be used in ostreams
@@ -683,7 +696,7 @@ namespace priv {
          * @brief Set the System Update object
          * @param f The function to update the system
          */
-        void setSystemUpdate(SystemUpdater f) { _f = f; }
+        void setSystemUpdate(const SystemUpdater& f) { _f = f; }
 
         /**
          * @brief Get the System Update object (uses indexes)
@@ -807,7 +820,8 @@ private:
     std::size_t _componentArraySize = REGISTRY_COMPONENT_SIZE;
 
     /**
-     * @brief Update a specified entity to have it fitting the component registry
+     * @brief Update a specified entity to have it fitting the component
+     * registry
      * @param e The index to the Entity
      * @return true if the entity has been resized
      * @return true if the entity has not been resized
@@ -815,7 +829,7 @@ private:
     bool _uecr(const EntityId& e)
     {
         if (_entities.isSet(e)
-            && _entities.get(e).size() + 1 >= _lastComponentIndex) {
+            && _entities.cget(e).size() + 1 >= _lastComponentIndex) {
             _entities.get(e).resize(REGISTRY_COMPONENT_SIZE);
             return true;
         }
@@ -851,7 +865,7 @@ private:
             return _componentToIndex.at(name);
         } catch (...) {
             _componentToIndex[name] = _lastComponentIndex;
-           _lastComponentIndex++;
+            _lastComponentIndex++;
             if (_uaecr())
                 _componentArraySize += REGISTRY_COMPONENT_SIZE;
             return _lastComponentIndex - 1;
@@ -928,7 +942,7 @@ public:
     {
         if (updateLast)
             _lastUsedEntity = e;
-        return _entities.get(e.id).isSet(component);
+        return _entities.cget(e.id).isSet(component);
     }
 
     /**
@@ -1001,8 +1015,7 @@ public:
             if (_lastUsedEntity.id + 1 >= _entities.size()) {
                 _entities.resize(REGISTRY_ENTITY_SIZE);
             }
-            _entities.set(
-                new priv::SparseArray<Component>(_componentArraySize),
+            _entities.set(new priv::SparseArray<Component>(_componentArraySize),
                 _lastUsedEntity.id);
             _lastEntityId++;
             return _lastUsedEntity;
@@ -1096,8 +1109,8 @@ public:
      * parameter (if true, _lastUsedSystem is updated to sys)
      * @return registry& The registry to chain the calls
      */
-    registry& setSystemUpdate(
-        const std::string& tag, SystemUpdater f, const bool& updateLast = true)
+    registry& setSystemUpdate(const std::string& tag, const SystemUpdater& f,
+        const bool& updateLast = true)
     {
         if (updateLast)
             _lastUsedSystem = tag;
@@ -1110,7 +1123,7 @@ public:
      * @param f The function to set
      * @return registry& The registry to chain the calls
      */
-    registry& setSystemUpdate(SystemUpdater f)
+    registry& setSystemUpdate(const SystemUpdater& f)
     {
         return setSystemUpdate(_lastUsedSystem, f, false);
     }
@@ -1163,7 +1176,7 @@ public:
      * @brief Returns the current max Entity id
      * @return EntityId The max Entity id
      */
-    EntityId entitiesCount() const { return _lastEntityId; }
+    const EntityId& entitiesCount() const { return _lastEntityId; }
 };
 
 namespace priv {
@@ -1372,7 +1385,7 @@ public:
 
         /**
          * @brief Gets the current entity and its components
-         * @return std::tuple<Entity, T&, Args&...> The current entity and its
+         * @return std::tuple<Entity, T&, Args&...>& The current entity and its
          * components
          */
         std::tuple<Entity, T&, Args&...>& operator*()
@@ -1387,10 +1400,37 @@ public:
 
         /**
          * @brief Gets the current entity and its components
+         * @return const std::tuple<Entity, T&, Args&...>& The current entity
+         * and its components
+         */
+        const std::tuple<const Entity, const T&, const Args&...>&
+        operator*() const
+        {
+            try {
+                return *_tuple.at(_i);
+            } catch (const std::exception& e) {
+                throw Error(
+                    std::string("operator*(): invalid iterator: ") + e.what());
+            }
+        }
+
+        /**
+         * @brief Gets the current entity and its components
+         * @return const std::tuple<Entity, T&, Args&...> The current entity and
+         * its components
+         */
+        std::tuple<Entity, T&, Args&...>& operator->() { return *this; }
+
+        /**
+         * @brief Gets the current entity and its components
          * @return std::tuple<Entity, T&, Args&...> The current entity and its
          * components
          */
-        std::tuple<Entity, T&, Args&...>& operator->() { return *this; }
+        const std::tuple<const Entity, const T&, const Args&...>&
+        operator->() const
+        {
+            return *this;
+        }
     };
 
     /**
