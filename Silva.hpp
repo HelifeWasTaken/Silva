@@ -802,6 +802,43 @@ private:
     std::string _lastUsedSystem = "";
 
     /**
+     * @brief Hold last component resize
+     */
+    std::size_t _componentArraySize = REGISTRY_COMPONENT_SIZE;
+
+    /**
+     * @brief Update a specified entity to have it fitting the component registry
+     * @param e The index to the Entity
+     * @return true if the entity has been resized
+     * @return true if the entity has not been resized
+     */
+    bool _uecr(const EntityId& e)
+    {
+        if (_entities.isSet(e)
+            && _entities.get(e).size() + 1 >= _lastComponentIndex) {
+            _entities.get(e).resize(REGISTRY_COMPONENT_SIZE);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief Updates all the entities to be sure
+     *        to have all the Entities fitting the
+     *        component registry
+     * @return true if an entity has been resized
+     * @return false if no entity has been resized
+     */
+    bool _uaecr()
+    {
+        bool modified = false;
+        for (EntityId e = 0; e < _lastEntityId; e++)
+            if (_uecr(e))
+                modified = true;
+        return modified;
+    }
+
+    /**
      * @brief Transform the given type to a string hashes it
      *        and uses it as a key to store the component index
      *        If the type is not registered yet, it registers it
@@ -814,11 +851,9 @@ private:
             return _componentToIndex.at(name);
         } catch (...) {
             _componentToIndex[name] = _lastComponentIndex;
-            for (unsigned int i = 0; i < _lastComponentIndex; i++)
-                if (_entities.isSet(i)
-                    && _entities.get(i).size() + 1 >= _lastEntityId)
-                    _entities.get(i).resize(REGISTRY_ENTITY_SIZE);
-            _lastComponentIndex++;
+           _lastComponentIndex++;
+            if (_uaecr())
+                _componentArraySize += REGISTRY_COMPONENT_SIZE;
             return _lastComponentIndex - 1;
         }
     }
@@ -967,13 +1002,13 @@ public:
                 _entities.resize(REGISTRY_ENTITY_SIZE);
             }
             _entities.set(
-                new priv::SparseArray<Component>(REGISTRY_COMPONENT_SIZE),
+                new priv::SparseArray<Component>(_componentArraySize),
                 _lastUsedEntity.id);
             _lastEntityId++;
             return _lastUsedEntity;
         }
         _lastUsedEntity = Entity(_removedEntitiesIds.top());
-        _entities.set(new priv::SparseArray<Component>(REGISTRY_COMPONENT_SIZE),
+        _entities.set(new priv::SparseArray<Component>(_componentArraySize),
             _lastUsedEntity.id);
         _removedEntitiesIds.pop();
         return _lastUsedEntity;
