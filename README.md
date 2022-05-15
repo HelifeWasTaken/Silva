@@ -33,8 +33,7 @@ public:
     {
     }
 };
-```
-```cpp
+
 int main()
 {
     silva::registry r;
@@ -43,44 +42,52 @@ int main()
 
     // To chain emplaces use the _r version for the other calls
     r.emplace<Velocity>(e, 1, 2)
-        .emplace_r<Some>(1)
+        .emplace_r<Some>(0)
         .emplace_r<Other>((Other) { 1 })
         .emplace_r<Test>(1, 2, 3);
 
     r.emplace<Velocity>(e2, 1, 2)
-        .emplace_r<Some>(3);
+        .emplace_r<Some>(0);
 
     // Add a system and the conresponding update function
     r.addSystem<Some>("test").setSystemUpdate(
         [](const silva::Entity& e, silva::registry& r) {
             auto& v = r.get<Some>(e);
-            std::cout << "Entity: " << e << std::endl;
-            std::cout << v.a << std::endl;
+            std::cout << e << " " << v.a << std::endl;
             v.a++;
         });
     r.update().update().update().update(); // Call the update of the test System 4 times
 
-    // Views are slices equivalent that are readonly!
+    // Views are slices equivalent
     // They can be used to gather some informations
-    silva::View<Velocity, Some> v(r);
+    // But avoid removing entities from the registry
+    // while using them because it will invalidate the view
+    silva::View<Velocity&, Some&> v(r);
 
 
     // You can also avoid to specify the Entity parameter
     v.each(
         [](const Velocity& v, const Some& s) {
-            std::cout << "Each: " << v.x << " " << v.y << std::endl;
+            std::cout << "Each: " << "Entity(Noid)" << s.a << std::endl;
         }
     );
 
     v.eachEntity(
-        [](const silva::Entity& e, const Velocity& v, const Some& s) {
-            std::cout << "Each With Entity: " << v.x << " " << v.y << std::endl;
+        [](const silva::Entity& e, const Velocity& v, Some& s) {
+            std::cout << "Each With Entity: " << e << " " << s.a << std::endl;
+            s.a++;
         }
     );
 
     // You can use ranged for loops
-    for (const auto& [e, v, s] : v) {
-        std::cout << "Ranged: " << v.x << " " << v.y << std::endl;
+    for (auto& [e, v, s] : v) {
+        std::cout << "Ranged: " << e << " " << s.a << std::endl;
+        s.a++;
+    }
+
+    // And this for
+    for (auto& e : v) {
+        std::cout << "For: " << std::get<Some&>(e).a << std::endl;
     }
 }
 ```
