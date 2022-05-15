@@ -1251,7 +1251,7 @@ public:
                 Entity e(id);
                 _tuple.push_back(
                     std::make_unique<std::tuple<Entity, T&, Args&...>>(
-                        e, r.get<T>(e), r.get<Args>(e)...));
+                        e, r.get<T>(e), r.get<Args&>(e)...));
             }
         }
     }
@@ -1263,7 +1263,8 @@ public:
     void eachEntity(F f)
     {
         for (const auto& t : _tuple)
-            f(std::forward<Entity>(std::get<0>(*t)), std::get<1>(*t),
+            f(std::get<0>(*t),
+                std::get<1>(*t),
                 std::forward<Args&>(std::get<2>(*t))...);
     }
 
@@ -1455,6 +1456,13 @@ public:
      * @return Iterator An iterator to the last entity of the view
      */
     Iterator end() { return Iterator(_tuple, _tuple.size()); }
+
 };
+
+template<typename R, typename ...Args>
+R& get(std::tuple<Args...>& h) { return std::get<R&>(h); }
+
+template<typename R, typename ...Args>
+const R& cget(std::tuple<Args...>& h) { return std::get<R&>(h); }
 
 } // namespace silva
