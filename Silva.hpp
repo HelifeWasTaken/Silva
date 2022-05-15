@@ -12,6 +12,9 @@
 
 namespace silva {
 
+    /**
+     * @brief Base class for all the exceptions
+     */
     class Error : public std::exception {
         private:
             /**
