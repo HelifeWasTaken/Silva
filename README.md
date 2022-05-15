@@ -34,7 +34,6 @@ public:
     }
 };
 ```
-
 ```cpp
 int main()
 {
@@ -64,18 +63,24 @@ int main()
     // Views are slices equivalent that are readonly!
     // They can be used to gather some informations
     silva::View<Velocity, Some> v(r);
-    v.eachEntity(
-        [](const silva::Entity& e, const Velocity& v, const Some& s) {
-            std::cout << v.x << " " << v.y << std::endl;
-        }
-    );
+
 
     // You can also avoid to specify the Entity parameter
     v.each(
         [](const Velocity& v, const Some& s) {
-            std::cout << v.x << " " << v.y << std::endl;
-            v.x++;
+            std::cout << "Each: " << v.x << " " << v.y << std::endl;
         }
     );
+
+    v.eachEntity(
+        [](const silva::Entity& e, const Velocity& v, const Some& s) {
+            std::cout << "Each With Entity: " << v.x << " " << v.y << std::endl;
+        }
+    );
+
+    // You can use ranged for loops
+    for (const auto& [e, v, s] : v) {
+        std::cout << "Ranged: " << v.x << " " << v.y << std::endl;
+    }
 }
 ```
