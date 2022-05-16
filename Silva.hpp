@@ -47,7 +47,7 @@ public:
      * @brief Construct a new Error object
      * @param msg The error message
      */
-    Error(const std::string& msg)
+    inline Error(const std::string& msg)
         : _msg(msg)
     {
     }
@@ -56,7 +56,7 @@ public:
      * @brief Get the error message
      * @return const char* The error message
      */
-    virtual const char* what() const noexcept override { return _msg.c_str(); }
+    inline virtual const char* what() const noexcept override { return _msg.c_str(); }
 };
 
 namespace priv {
@@ -90,7 +90,7 @@ namespace priv {
          * @brief Construct a new Sparse Array
          * @param baseSize The base size of the array
          */
-        SparseArray(const std::size_t& baseSize = SPARSE_ARRAY_BASE)
+        inline SparseArray(const std::size_t& baseSize = SPARSE_ARRAY_BASE)
             : _baseSize(baseSize)
         {
             resize(_baseSize);
@@ -100,7 +100,7 @@ namespace priv {
          * @brief Set the size of the registry of _baseSize and fill it with
          * null values
          */
-        void clear()
+        inline void clear()
         {
             try {
                 _registry.clear();
@@ -117,7 +117,7 @@ namespace priv {
          *        SPARSE_ARRAY_BASE if no size is given
          * @param size The size to add to the registry
          */
-        void resize(const std::size_t& size)
+        inline void resize(const std::size_t& size)
         {
             try {
                 _registry.reserve(_registry.size() + size);
@@ -135,7 +135,7 @@ namespace priv {
          * @param value The value to set
          * @param i The index to set the value at
          */
-        void set(std::unique_ptr<T>&& elem, const std::size_t& i)
+        inline void set(std::unique_ptr<T>&& elem, const std::size_t& i)
         {
             try {
                 _registry.at(i) = std::move(elem);
@@ -151,7 +151,7 @@ namespace priv {
          * @param elem The value at the given index
          * @param i The index to get the value at
          */
-        void set(std::unique_ptr<T>& elem, const std::size_t& i)
+        inline void set(std::unique_ptr<T>& elem, const std::size_t& i)
         {
             try {
                 _registry.at(i) = std::move(elem);
@@ -167,7 +167,7 @@ namespace priv {
          * @param elem The value to set
          * @param i The index to get the value at
          */
-        void set(T* elem, const std::size_t& i)
+        inline void set(T* elem, const std::size_t& i)
         {
             try {
                 _registry.at(i) = std::unique_ptr<T>(elem);
@@ -183,7 +183,7 @@ namespace priv {
          * @param elem const T& The value at the given index
          * @param i std::size_t& index The index to get the value at
          */
-        void set(const T& elem, const std::size_t& i)
+        inline void set(const T& elem, const std::size_t& i)
         {
             try {
                 _registry.at(i) = std::make_unique<T>(elem);
@@ -199,7 +199,7 @@ namespace priv {
          * with T())
          * @param i The index to set the value at
          */
-        void set(const std::size_t& i)
+        inline void set(const std::size_t& i)
         {
             try {
                 _registry.at(i) = std::make_unique<T>();
@@ -214,7 +214,7 @@ namespace priv {
          *        (It is recommended to have a proper destructor for T)
          * @param i The index to unset the value at
          */
-        void unset(const std::size_t& i)
+        inline void unset(const std::size_t& i)
         {
             try {
                 _registry.at(i) = std::unique_ptr<T>(nullptr);
@@ -229,7 +229,7 @@ namespace priv {
          * @param i The index to get the value at
          * @return T& The value at the given index
          */
-        T& get(const std::size_t& i)
+        inline T& get(const std::size_t& i)
         {
             if (isSet(i))
                 return *_registry.at(i);
@@ -242,7 +242,7 @@ namespace priv {
          * @param i The index to get the value at
          * @return const T& The value at the given index
          */
-        const T& cget(const std::size_t& i) const
+        inline const T& cget(const std::size_t& i) const
         {
             if (isSet(i))
                 return *_registry.at(i);
@@ -256,7 +256,7 @@ namespace priv {
          * @return std::unique_ptr<T>& The object value container at the given
          * index
          */
-        std::unique_ptr<T>& getO(const std::size_t& i)
+        inline std::unique_ptr<T>& getO(const std::size_t& i)
         {
             try {
                 return _registry.at(i);
@@ -271,7 +271,7 @@ namespace priv {
          * @param i The index to get the value at
          * @return T* The value at the given index
          */
-        bool isSet(const std::size_t& i) const
+        inline bool isSet(const std::size_t& i) const
         {
             try {
                 return _registry.at(i) != nullptr;
@@ -285,7 +285,7 @@ namespace priv {
          * @brief Get the size of the SparseArray
          * @return std::size_t The value at the given index
          */
-        const std::size_t size() const { return _registry.size(); }
+        inline const std::size_t size() const { return _registry.size(); }
 
         /**
          * @brief Iterator to iterate over the SparseArray
@@ -305,7 +305,7 @@ namespace priv {
             /**
              * @brief Advance the iterator to the next index
              */
-            void _advance()
+            inline void _advance()
             {
                 if (_index <= _array.size())
                     _index++;
@@ -314,7 +314,7 @@ namespace priv {
             /**
              * @brief Retreat the iterator to the previous index
              */
-            void _retreat()
+            inline void _retreat()
             {
                 if (_index > 0)
                     _index--;
@@ -322,8 +322,9 @@ namespace priv {
 
             /**
              * @brief Advance the iterator of N indexes
+             * @param n The number of indexes to advance
              */
-            void _advance(const std::size_t& n)
+            inline void _advance(const std::size_t& n)
             {
                 for (std::size_t i = 0; i < n && _index <= _array.size();
                      i++, _index++)
@@ -332,8 +333,9 @@ namespace priv {
 
             /**
              * @brief Retreat the iterator of N indexes
+             * @param n The number of indexes to retreat
              */
-            void _retreat(const std::size_t& n)
+            inline void _retreat(const std::size_t& n)
             {
                 for (std::size_t i = 0; i < n && _index > 0; i++, _index--)
                     ;
@@ -345,7 +347,7 @@ namespace priv {
              * @param array The SparseArray to iterate over
              * @param index The start index
              */
-            Iterator(SparseArray<T>& array, const std::size_t& index = 0)
+            inline Iterator(SparseArray<T>& array, const std::size_t& index = 0)
                 : _array(array)
                 , _index(index)
             {
@@ -357,13 +359,13 @@ namespace priv {
              * @brief Give the index of the current element
              * @return const std::size_t& The index of the current element
              */
-            const std::size_t& index() const { return _index; }
+            inline const std::size_t& index() const { return _index; }
 
             /**
              * @brief Advance the iterator to the next index
              * @return Iterator& The iterator at the next index
              */
-            Iterator& operator++()
+            inline Iterator& operator++()
             {
                 _advance();
                 return *this;
@@ -373,7 +375,7 @@ namespace priv {
              * @brief Advance the iterator to the previous index
              * @return Iterator& The iterator at the previous index
              */
-            Iterator& operator--()
+            inline Iterator& operator--()
             {
                 _retreat();
                 return *this;
@@ -381,9 +383,10 @@ namespace priv {
 
             /**
              * @brief Advance the iterator of N indexes
+             * @param n The number of indexes to advance
              * @return Iterator& The iterator at the next N index
              */
-            Iterator& operator+=(const std::size_t& n)
+            inline Iterator& operator+=(const std::size_t& n)
             {
                 _advance(n);
                 return *this;
@@ -391,9 +394,10 @@ namespace priv {
 
             /**
              * @brief Retreat the iterator of N indexes
+             * @param n The number of indexes to retreat
              * @return Iterator& The iterator at the previous N index
              */
-            Iterator& operator-=(const std::size_t& n)
+            inline Iterator& operator-=(const std::size_t& n)
             {
                 _retreat(n);
                 return *this;
@@ -401,9 +405,10 @@ namespace priv {
 
             /**
              * @brief Advance the iterator of N indexes
+             * @param n The number of indexes to advance
              * @return A new iterator at the next N index
              */
-            Iterator operator+(const std::size_t& n) const
+            inline Iterator operator+(const std::size_t& n) const
             {
                 Iterator it(_array);
                 return it += (n + _index);
@@ -411,9 +416,10 @@ namespace priv {
 
             /**
              * @brief Retreat the iterator of N indexes
+             * @param n The number of indexes to retreat
              * @return A new iterator at the previous N index
              */
-            Iterator operator-(const std::size_t& n) const
+            inline Iterator operator-(const std::size_t& n) const
             {
                 Iterator it(_array);
                 it += _index;
@@ -424,13 +430,13 @@ namespace priv {
              * @brief Get the object value at the current index
              * @return std::unique_ptr<T>& The object value at the current index
              */
-            std::unique_ptr<T>& operator*() { return _array.getO(_index); }
+            inline std::unique_ptr<T>& operator*() { return _array.getO(_index); }
 
             /**
              * @brief Get the object value at the current index
              * @return std::unique_ptr<T>& The object value at the current index
              */
-            std::unique_ptr<T>& operator->() { return _array.getO(_index); }
+            inline std::unique_ptr<T>& operator->() { return _array.getO(_index); }
 
             /**
              * @brief Compare two iterators
@@ -438,7 +444,7 @@ namespace priv {
              * @return true The iterators are equal
              * @return false The iterators are not equal
              */
-            bool operator==(const Iterator& other) const
+            inline bool operator==(const Iterator& other) const
             {
                 return _index == other.index();
             }
@@ -449,7 +455,7 @@ namespace priv {
              * @return true The iterators are not equal
              * @return false The iterators are equal
              */
-            bool operator!=(const Iterator& other) const
+            inline bool operator!=(const Iterator& other) const
             {
                 return _index != other.index();
             }
@@ -461,7 +467,7 @@ namespace priv {
              * @return false The left iterator index is greater or equal to the
              * right
              */
-            bool operator<(const Iterator& other) const
+            inline bool operator<(const Iterator& other) const
             {
                 return _index < other.index();
             }
@@ -474,7 +480,7 @@ namespace priv {
              * @return false The left iterator index is less or equal to the
              * right
              */
-            bool operator>(const Iterator& other) const
+            inline bool operator>(const Iterator& other) const
             {
                 return _index > other.index();
             }
@@ -486,7 +492,7 @@ namespace priv {
              * right
              * @return false The left iterator index is greater than the right
              */
-            bool operator<=(const Iterator& other) const
+            inline bool operator<=(const Iterator& other) const
             {
                 return _index <= other.index();
             }
@@ -498,7 +504,7 @@ namespace priv {
              * the right
              * @return false The left iterator index is less than the right
              */
-            bool operator>=(const Iterator& other) const
+            inline bool operator>=(const Iterator& other) const
             {
                 return _index >= other.index();
             }
@@ -509,44 +515,44 @@ namespace priv {
              * @return true The object at the current index is valid
              * @return false The object at the current index is invalid
              */
-            bool isSet() const { return _array.isSet(_index); }
+            inline bool isSet() const { return _array.isSet(_index); }
 
             /**
              * @brief Set the given object at the current index of the Iterator
              * @param elem The object to set
              */
-            void set(const T& elem) { _array.set(elem, _index); }
+            inline void set(const T& elem) { _array.set(elem, _index); }
 
             /**
              * @brief Set the given object at the current index of the Iterator
              * @param elem The object to set
              */
-            void set(T* elem) { _array.set(elem, _index); }
+            inline void set(T* elem) { _array.set(elem, _index); }
 
             /**
              * @brief Set the given object at the current index of the Iterator
              * @param elem The object to set
              */
-            void set(std::unique_ptr<T>& elem) { _array.set(elem, _index); }
+            inline void set(std::unique_ptr<T>& elem) { _array.set(elem, _index); }
 
             /**
              * @brief Unset the given object at the current index of the
              * Iterator
              */
-            void unset() { _array.unset(_index); }
+            inline void unset() { _array.unset(_index); }
         };
 
         /**
          * @brief Get an iterator to the first element
          * @return Iterator The iterator to the first element
          */
-        Iterator begin() { return Iterator(*this); }
+        inline Iterator begin() { return Iterator(*this); }
 
         /**
          * @brief Get an iterator to the last element
          * @return Iterator The iterator to the last element
          */
-        Iterator end() { return Iterator(*this, _registry.size()); }
+        inline Iterator end() { return Iterator(*this, _registry.size()); }
     };
 }
 }
@@ -555,45 +561,56 @@ namespace silva {
 
 /**
  * @brief Fwd
- *
  */
 class registry;
 
 /**
  * @brief Fwd
- *
+ */
+template<typename T, typename... Args>
+class View;
+
+/**
+ * @brief Fwd
  */
 struct Entity;
 
 /**
  * @brief Id of an Entity
- *
  */
 using EntityId = std::size_t;
 
 /**
  * @brief Type of a Component
- *
  */
 using Component = std::any;
 
 /**
  * @brief Index of a Component
- *
  */
 using ComponentIndex = std::size_t;
 
 /**
  * @brief Type for hash of a Component typename
- *
  */
 using TypeNameId = const char*;
 
 /**
  * @brief Function to update a system
- *
  */
 using SystemUpdater = std::function<void(const Entity&, registry&)>;
+
+/**
+ * @brief The container for a value of a view
+ *
+ * @tparam T The first type of the value
+ * @tparam Args... The other types of the value
+ */
+template<typename... Args>
+using ViewValue = std::tuple<Entity, Args&...>;
+
+template<typename... Args>
+using ViewContainer = std::vector<std::unique_ptr<ViewValue<Args...>>>;
 
 /**
  * @brief Entity is a single ID wrapped around a struct
@@ -612,12 +629,12 @@ struct Entity {
      * @brief Construct a new Entity
      * @param id The id of the Entity
      */
-    explicit Entity(const EntityId& id)
+    inline explicit Entity(const EntityId& id)
         : id(id)
     {
     }
 
-    Entity& operator=(const Entity& other)
+    inline Entity& operator=(const Entity& other)
     {
         id = other.id;
         return *this;
@@ -629,7 +646,7 @@ struct Entity {
      * @return true The Entities are equal
      * @return false The Entities are not equal
      */
-    bool operator==(const Entity& other) const { return id == other.id; }
+    inline bool operator==(const Entity& other) const { return id == other.id; }
 
     /**
      * @brief Tells if the Entity is not equal to another Entity
@@ -637,7 +654,7 @@ struct Entity {
      * @return true The Entities are not equal
      * @return false The Entities are equal
      */
-    bool operator!=(const Entity& other) const { return id != other.id; }
+    inline bool operator!=(const Entity& other) const { return id != other.id; }
 
     /**
      * @brief Represent the Entity as a string to be used in ostreams
@@ -646,7 +663,7 @@ struct Entity {
      * @param e The Entity to represent
      * @return std::ostream& The ostream
      */
-    friend std::ostream& operator<<(std::ostream& os, const Entity& e)
+    inline friend std::ostream& operator<<(std::ostream& os, const Entity& e)
     {
         return os << "Entity(" << e.id << ")";
     }
@@ -691,25 +708,19 @@ namespace priv {
         /**
          * @brief Construct a new System
          */
-        System() = default;
-
-        /**
-         * @brief Construct a new System from another System
-         * @param sys The system to copy
-         */
-        System(const System& sys) = default;
+        inline System() = default;
 
         /**
          * @brief Set the System Update object
          * @param f The function to update the system
          */
-        void setSystemUpdate(const SystemUpdater& f) { _f = f; }
+        inline void setSystemUpdate(const SystemUpdater& f) { _f = f; }
 
         /**
          * @brief Get the System Update object (uses indexes)
          * @param dependency The dependency of the system
          */
-        void addDependency(const ComponentIndex& dependency)
+        inline void addDependency(const ComponentIndex& dependency)
         {
             if (std::find(
                     _dependencies.begin(), _dependencies.end(), dependency)
@@ -728,13 +739,13 @@ namespace priv {
          * @param r The registry
          * @param e The entity to check
          */
-        void onEntityUpdate(registry& r, const Entity& e);
+        inline void onEntityUpdate(registry& r, const Entity& e);
 
         /**
          * @brief Remove the given entity from the system
          * @param e The entity to remove
          */
-        void onEntityDelete(const Entity& e)
+        inline void onEntityDelete(const Entity& e)
         {
             const std::size_t oldSize = _entities.size();
             _entities.erase(std::remove(_entities.begin(), _entities.end(), e),
@@ -748,7 +759,7 @@ namespace priv {
          * @brief Update the system
          * @param r The registry to use
          */
-        void update(registry& r)
+        inline void update(registry& r)
         {
             for (_index = 0; _index < _entities.size(); _index++)
                 _f(_entities[_index], r);
@@ -833,7 +844,7 @@ private:
      * @return true if the entity has been resized
      * @return true if the entity has not been resized
      */
-    bool _uecr(const EntityId& e)
+    inline bool _uecr(const EntityId& e)
     {
         if (_entities.isSet(e)
             && _entities.cget(e).size() + 1 >= _lastComponentIndex) {
@@ -850,7 +861,7 @@ private:
      * @return true if an entity has been resized
      * @return false if no entity has been resized
      */
-    bool _uaecr()
+    inline bool _uaecr()
     {
         bool modified = false;
         for (EntityId e = 0; e < _lastEntityId; e++)
@@ -866,7 +877,7 @@ private:
      * @return ComponentIndex The index of the component
      */
     template <typename T>
-    ComponentIndex _cti()
+    inline ComponentIndex _cti()
     {
         TypeNameId name = typeid(T).name();
         try {
@@ -887,7 +898,7 @@ private:
      * @return registry& The registry to chain the calls
      */
     template <typename T>
-    registry& _addSystemDeps(priv::System& sys)
+    inline registry& _addSystemDeps(priv::System& sys)
     {
         sys.addDependency(_cti<T>());
         for (unsigned int i = 0; i < _lastEntityId; i++)
@@ -903,7 +914,7 @@ private:
      */
     template <typename T, typename... Args,
         typename std::enable_if<sizeof...(Args) != 0>::type* = nullptr>
-    registry& _addSystemDeps(priv::System& sys)
+    inline registry& _addSystemDeps(priv::System& sys)
     {
         sys.addDependency(_cti<T>());
         return _addSystemDeps<Args...>(sys);
@@ -918,7 +929,7 @@ public:
      */
     template <typename T, typename... Args,
         typename std::enable_if<sizeof...(Args) != 0>::type* = nullptr>
-    std::vector<ComponentIndex>& getDepsList(std::vector<ComponentIndex>& deps)
+    inline std::vector<ComponentIndex>& getDepsList(std::vector<ComponentIndex>& deps)
     {
         deps.push_back(_cti<T>());
         return getDepsList<Args...>(deps);
@@ -931,7 +942,7 @@ public:
      */
     template <typename T, typename... Args,
         typename std::enable_if<sizeof...(Args) == 0>::type* = nullptr>
-    std::vector<ComponentIndex>& getDepsList(std::vector<ComponentIndex>& deps)
+    inline std::vector<ComponentIndex>& getDepsList(std::vector<ComponentIndex>& deps)
     {
         deps.push_back(_cti<T>());
         return deps;
@@ -946,7 +957,7 @@ public:
      * @return true if the entity has the component, false otherwise
      * @return false if the entity has the component, true otherwise
      */
-    bool has(const Entity& e, const ComponentIndex& component,
+    inline bool has(const Entity& e, const ComponentIndex& component,
         const bool& updateLast = true)
     {
         if (updateLast)
@@ -959,7 +970,7 @@ public:
      * @return true if the entity has the component, false otherwise
      * @return false if the entity has the component, true otherwise
      */
-    bool has(const ComponentIndex& component)
+    inline bool has(const ComponentIndex& component)
     {
         return has(_lastUsedEntity, component, false);
     }
@@ -974,7 +985,7 @@ public:
      * @return false if the entity has the component, true otherwise
      */
     template <typename T>
-    bool has(const Entity& e, const bool& updateLast = true)
+    inline bool has(const Entity& e, const bool& updateLast = true)
     {
         return has(e, _cti<T>(), updateLast);
     }
@@ -986,7 +997,7 @@ public:
      * @return false if the entity has the component, true otherwise
      */
     template <typename T>
-    bool has(const bool& updateLast = true)
+    inline bool has(const bool& updateLast = true)
     {
         return has(_lastUsedEntity, _cti<T>(), updateLast);
     }
@@ -1000,7 +1011,7 @@ public:
      * @return T& The component of the entity
      */
     template <typename T>
-    T& get(const Entity& e, const bool& updateLast = true)
+    inline T& get(const Entity& e, const bool& updateLast = true)
     {
         if (updateLast)
             _lastUsedEntity = e;
@@ -1013,14 +1024,14 @@ public:
      * @return T& The component of the entity
      */
     template <typename T>
-    T& get() { return get<T>(_lastUsedEntity, false); }
+    inline T& get() { return get<T>(_lastUsedEntity, false); }
 
     /**
      * @brief Creates a new Entity and returns it
      *        It sets the last used Entity to the newly created one
      * @return Entity The new Entity
      */
-    Entity newEntity()
+    inline Entity newEntity()
     {
         if (_removedEntitiesIds.empty()) {
             _lastUsedEntity.id = _lastEntityId;
@@ -1044,7 +1055,7 @@ public:
      * @param e The entity to remove
      * @return registry& The registry to chain the calls
      */
-    registry& removeEntity(const Entity& e)
+    inline registry& removeEntity(const Entity& e)
     {
         _entities.unset(e.id);
         for (auto& sys : _systems)
@@ -1067,7 +1078,7 @@ public:
      * @return registry& The registry to chain the calls
      */
     template <typename T, typename... Args>
-    registry& addSystem(const std::string& tag, const bool& updateLast = true)
+    inline registry& addSystem(const std::string& tag, const bool& updateLast = true)
     {
         if (updateLast)
             _lastUsedSystem = tag;
@@ -1083,7 +1094,7 @@ public:
      * @return registry& The registry to chain the calls
      */
     template <typename T, typename... Args>
-    registry& addSystemDeps(
+    inline registry& addSystemDeps(
         const std::string& tag, const bool& updateLast = true)
     {
         if (updateLast)
@@ -1098,7 +1109,7 @@ public:
      * @return registry& The registry to chain the calls
      */
     template <typename T, typename... Args>
-    registry& addSystemDeps()
+    inline registry& addSystemDeps()
     {
         return addSystemDeps<T, Args...>(_lastUsedSystem, false);
     }
@@ -1108,7 +1119,7 @@ public:
      * @param tag The tag of the system
      * @return registry& The registry to chain the calls
      */
-    registry& removeSystem(const std::string& tag)
+    inline registry& removeSystem(const std::string& tag)
     {
         _systems.erase(tag);
         return *this;
@@ -1122,7 +1133,7 @@ public:
      * parameter (if true, _lastUsedSystem is updated to sys)
      * @return registry& The registry to chain the calls
      */
-    registry& setSystemUpdate(const std::string& tag, const SystemUpdater& f,
+    inline registry& setSystemUpdate(const std::string& tag, const SystemUpdater& f,
         const bool& updateLast = true)
     {
         if (updateLast)
@@ -1136,7 +1147,7 @@ public:
      * @param f The function to set
      * @return registry& The registry to chain the calls
      */
-    registry& setSystemUpdate(const SystemUpdater& f)
+    inline registry& setSystemUpdate(const SystemUpdater& f)
     {
         return setSystemUpdate(_lastUsedSystem, f, false);
     }
@@ -1150,7 +1161,7 @@ public:
      * @return registry& The registry to chain the calls
      */
     template <typename T, typename... Args>
-    registry& emplace_r(Args&&... args)
+    inline registry& emplace_r(Args&&... args)
     {
         return emplace<T, Args...>(
             _lastUsedEntity, std::forward<Args>(args)...);
@@ -1165,7 +1176,7 @@ public:
      * @return registry& The registry to chain the calls
      */
     template <typename T, typename... Args>
-    registry& emplace(const Entity& e, Args&&... args)
+    inline registry& emplace(const Entity& e, Args&&... args)
     {
         _lastUsedEntity = e;
         _entities.get(e.id).set(
@@ -1179,7 +1190,7 @@ public:
      * @brief Updates all the systems in the registry
      * @return registry& The registry to chain the calls
      */
-    registry& update()
+    inline registry& update()
     {
         for (auto& sys : _systems)
             sys.second->update(*this);
@@ -1190,7 +1201,13 @@ public:
      * @brief Returns the current max Entity id
      * @return EntityId The max Entity id
      */
-    const EntityId& entitiesCount() const { return _lastEntityId; }
+    inline const EntityId& entitiesCount() const { return _lastEntityId; }
+
+    template<typename T, typename... Args>
+    inline View<T, Args...> view()
+    {
+        return View<T, Args...>(*this);
+    }
 };
 
 namespace priv {
@@ -1234,14 +1251,14 @@ private:
     /**
      * @brief The registry that the view is based on
      */
-    std::vector<std::unique_ptr<std::tuple<Entity, T&, Args&...>>> _tuple;
+    ViewContainer<T, Args...> _tuple;
 
 public:
     /**
      * @brief Construct a new View object
      * @param r The registry to base the view on
      */
-    View(registry& r)
+    inline View(registry& r)
     {
         std::vector<ComponentIndex> deps;
         r.getDepsList<T&, Args&...>(deps);
@@ -1264,9 +1281,23 @@ public:
 
     /**
      * @brief Apply the given function to each entity in the view
+     * @param f The function to apply
+     * @tparam F The type of the function
+     */
+    template<typename F>
+    inline void each(const F& f)
+    {
+        for (const auto& t : _tuple)
+            f(std::get<1>(*t), std::forward<Args&>(std::get<2>(*t))...);
+    }
+
+    /**
+     * @brief Apply the given function to each entity in the view
+     * @param f The function to apply
+     * @tparam F The type of the function
      */
     template <typename F>
-    void eachEntity(F f)
+    inline void each2(const F& f)
     {
         for (const auto& t : _tuple)
             f(std::get<0>(*t),
@@ -1274,15 +1305,7 @@ public:
                 std::forward<Args&>(std::get<2>(*t))...);
     }
 
-    /**
-     * @brief Apply the given function to each entity in the view
-     */
-    template <typename F>
-    void each(F f)
-    {
-        for (const auto& t : _tuple)
-            f(std::get<1>(*t), std::forward<Args&>(std::get<2>(*t))...);
-    }
+    template<typename F> inline void eachEntity(const F& f) { each2<F>(f); }
 
     /**
      * @brief Iterator based on the view
@@ -1295,10 +1318,9 @@ public:
         std::size_t _i;
 
         /**
-         * @brief A reference to the view
+         * @brief A reference to the view container
          */
-        const std::vector<std::unique_ptr<std::tuple<Entity, T&, Args&...>>>&
-            _tuple;
+        const ViewContainer<T, Args...>& _tuple;
 
     public:
         /**
@@ -1306,9 +1328,7 @@ public:
          * @param tuple A reference to the view
          * @param i The starting index
          */
-        Iterator(const std::vector<
-                     std::unique_ptr<std::tuple<Entity, T&, Args&...>>>& tuple,
-            std::size_t i)
+        inline Iterator(const ViewContainer<T, Args...>& tuple, std::size_t i)
             : _i(i)
             , _tuple(tuple)
         {
@@ -1320,7 +1340,7 @@ public:
          * @brief Advances the iterator of one step
          * @return Iterator& The iterator after the step
          */
-        Iterator& operator++()
+        inline Iterator& operator++()
         {
             if (++_i >= _tuple.size())
                 _i = _tuple.size();
@@ -1331,7 +1351,7 @@ public:
          * @brief Retreats the iterator of one step
          * @return Iterator& The iterator before the step
          */
-        Iterator& operator--()
+        inline Iterator& operator--()
         {
             if (--_i >= _tuple.size())
                 _i = _tuple.size();
@@ -1343,7 +1363,7 @@ public:
          * @param n The number of steps to advance
          * @return Iterator A copy of the iterator + n steps
          */
-        Iterator operator+(const std::size_t& i)
+        inline Iterator operator+(const std::size_t& i)
         {
             return Iterator(_tuple, _i + i);
         }
@@ -1353,7 +1373,7 @@ public:
          * @param i The number of steps to retreat
          * @return Iterator A copy of the iterator - n steps
          */
-        Iterator operator-(const std::size_t& i)
+        inline Iterator operator-(const std::size_t& i)
         {
             Iterator it = Iterator(_tuple, _i);
             return it -= i;
@@ -1364,7 +1384,7 @@ public:
          * @param i The number of steps to advance
          * @return Iterator& The iterator after n step
          */
-        Iterator& operator+=(const std::size_t& i)
+        inline Iterator& operator+=(const std::size_t& i)
         {
             _i += i;
             if (_i >= _tuple.size())
@@ -1377,7 +1397,7 @@ public:
          * @param i The number of steps to retreat
          * @return Iterator& The iterator before n step
          */
-        Iterator& operator-=(const std::size_t& i)
+        inline Iterator& operator-=(const std::size_t& i)
         {
             _i -= i;
             if (_i >= _tuple.size())
@@ -1391,7 +1411,7 @@ public:
          * @return true The two iterators are not equal
          * @return false The two iterators are equal
          */
-        bool operator!=(const Iterator& other) const { return _i != other._i; }
+        inline bool operator!=(const Iterator& other) const { return _i != other._i; }
 
         /**
          * @brief Compares two iterators
@@ -1399,14 +1419,14 @@ public:
          * @return true The two iterators are equal
          * @return false The two iterators are not equal
          */
-        bool operator==(const Iterator& other) const { return _i == other._i; }
+        inline bool operator==(const Iterator& other) const { return _i == other._i; }
 
         /**
          * @brief Gets the current entity and its components
          * @return std::tuple<Entity, T&, Args&...>& The current entity and its
          * components
          */
-        std::tuple<Entity, T&, Args&...>& operator*()
+        inline ViewValue<T, Args...>& operator*()
         {
             try {
                 return *_tuple.at(_i);
@@ -1421,7 +1441,7 @@ public:
          * @return const std::tuple<Entity, T&, Args&...>& The current entity
          * and its components
          */
-        const std::tuple<const Entity, const T&, const Args&...>&
+        inline const ViewValue<const T, const Args...>&
         operator*() const
         {
             try {
@@ -1437,15 +1457,14 @@ public:
          * @return const std::tuple<Entity, T&, Args&...> The current entity and
          * its components
          */
-        std::tuple<Entity, T&, Args&...>& operator->() { return *this; }
+        inline ViewValue<T, Args...>& operator->() { return *this; }
 
         /**
          * @brief Gets the current entity and its components
          * @return std::tuple<Entity, T&, Args&...> The current entity and its
          * components
          */
-        const std::tuple<const Entity, const T&, const Args&...>&
-        operator->() const
+        inline const ViewValue<const T, const Args...>& operator->() const
         {
             return *this;
         }
@@ -1455,20 +1474,20 @@ public:
      * @brief Returns an iterator to the first entity of the view
      * @return Iterator An iterator to the first entity of the view
      */
-    Iterator begin() { return Iterator(_tuple, 0); }
+    inline Iterator begin() { return Iterator(_tuple, 0); }
 
     /**
      * @brief Returns an iterator to the last entity of the view
      * @return Iterator An iterator to the last entity of the view
      */
-    Iterator end() { return Iterator(_tuple, _tuple.size()); }
+    inline Iterator end() { return Iterator(_tuple, _tuple.size()); }
 
 };
 
 template<typename R, typename ...Args>
-R& get(std::tuple<Args...>& h) { return std::get<R&>(h); }
+inline R& get(ViewValue<Args...>& h) { return std::get<R&>(h); }
 
 template<typename R, typename ...Args>
-const R& cget(std::tuple<Args...>& h) { return std::get<R&>(h); }
+inline const R& get(const ViewValue<Args...>& h) { return std::get<R&>(h); }
 
 } // namespace silva
