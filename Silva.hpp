@@ -567,7 +567,7 @@ class registry;
 /**
  * @brief Fwd
  */
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 class View;
 
 /**
@@ -606,10 +606,10 @@ using SystemUpdater = std::function<void(const Entity&, registry&)>;
  * @tparam T The first type of the value
  * @tparam Args... The other types of the value
  */
-template<typename... Args>
+template <typename... Args>
 using ViewValue = std::tuple<Entity, Args&...>;
 
-template<typename... Args>
+template <typename... Args>
 using ViewContainer = std::vector<std::unique_ptr<ViewValue<Args...>>>;
 
 /**
@@ -1203,7 +1203,7 @@ public:
      */
     inline const EntityId& entitiesCount() const { return _lastEntityId; }
 
-    template<typename T, typename... Args>
+    template <typename T, typename... Args>
     inline View<T, Args...> view()
     {
         return View<T, Args...>(*this);
@@ -1284,7 +1284,7 @@ public:
      * @param f The function to apply
      * @tparam F The type of the function
      */
-    template<typename F>
+    template <typename F>
     inline void each(const F& f)
     {
         for (const auto& t : _tuple)
@@ -1305,7 +1305,8 @@ public:
                 std::forward<Args&>(std::get<2>(*t))...);
     }
 
-    template<typename F> inline void eachEntity(const F& f) { each2<F>(f); }
+    template <typename F>
+    inline void eachEntity(const F& f) { each2<F>(f); }
 
     /**
      * @brief Iterator based on the view
@@ -1481,13 +1482,12 @@ public:
      * @return Iterator An iterator to the last entity of the view
      */
     inline Iterator end() { return Iterator(_tuple, _tuple.size()); }
-
 };
 
-template<typename R, typename ...Args>
+template <typename R, typename... Args>
 inline R& get(ViewValue<Args...>& h) { return std::get<R&>(h); }
 
-template<typename R, typename ...Args>
+template <typename R, typename... Args>
 inline const R& get(const ViewValue<Args...>& h) { return std::get<R&>(h); }
 
 } // namespace silva
