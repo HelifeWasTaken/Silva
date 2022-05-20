@@ -25,10 +25,12 @@
 #include <functional>
 #include <memory>
 #include <ostream>
-#include <stack>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <deque>
+
+#include <iostream>
 
 namespace silva {
 
@@ -704,6 +706,17 @@ namespace priv {
          */
         std::size_t _index = 0;
 
+        /**
+         * @brief Know if the system is currently used
+         */
+        bool _in_use = false;
+
+        /**
+         * @brief Know if the system has been modified
+         */
+        bool _modified = false;
+
+
     public:
         /**
          * @brief Construct a new System
@@ -751,8 +764,10 @@ namespace priv {
             _entities.erase(std::remove(_entities.begin(), _entities.end(), e),
                 _entities.end());
             const std::size_t offset = oldSize - _entities.size();
-            if (offset)
+            if (offset) {
                 _index = _index < offset ? 0 : _index - offset;
+                _modified = true;
+            }
         }
 
         /**
@@ -761,8 +776,13 @@ namespace priv {
          */
         inline void update(registry& r)
         {
-            for (_index = 0; _index < _entities.size(); _index++)
+            _index = 0;
+            _in_use = true;
+            while (_index < _entities.size()) {
                 _f(_entities[_index], r);
+                if (_modified) { _modified = false; } else { _index++; }
+            }
+            _in_use = false;
         }
     };
 
@@ -808,7 +828,7 @@ private:
     /**
      * @brief The ids of all the removed entities to reuse them
      */
-    std::stack<EntityId> _removedEntitiesIds;
+    std::vector<EntityId> _removedEntitiesIds;
 
     /**
      * @brief The next index of the entities
@@ -1043,11 +1063,40 @@ public:
             _lastEntityId++;
             return _lastUsedEntity;
         }
-        _lastUsedEntity = Entity(_removedEntitiesIds.top());
+        _lastUsedEntity = Entity(_removedEntitiesIds.at(0));
         _entities.set(new priv::SparseArray<Component>(_componentArraySize),
             _lastUsedEntity.id);
-        _removedEntitiesIds.pop();
+        _removedEntitiesIds.erase(_removedEntitiesIds.begin());
         return _lastUsedEntity;
+    }
+
+
+    inline registry& updateRemovedEntities()
+    {
+        std::sort(_removedEntitiesIds.begin(), _removedEntitiesIds.end());
+        bool modified;
+        do {
+            modified = false;
+            std::size_t l = 0;
+            std::size_t r = _removedEntitiesIds.size();
+            const std::size_t t = _lastEntityId - 1;
+            while (l < r) {
+                const std::size_t m = (l + r) / 2;
+                if (_removedEntitiesIds.at(m) < t) {
+                    l = m + 1;
+                } else if (_removedEntitiesIds.at(m) > t) {
+                    r = m - 1;
+                } else {
+                    modified = true;
+                    _removedEntitiesIds.erase(_removedEntitiesIds.begin() + m);
+                    _lastEntityId--;
+                    break;
+                }
+            }
+        } while (modified);
+        if (_removedEntitiesIds.empty() && _lastEntityId == 1)
+            _lastEntityId = 0;
+        return *this;
     }
 
     /**
@@ -1060,11 +1109,11 @@ public:
         _entities.unset(e.id);
         for (auto& sys : _systems)
             sys.second->onEntityDelete(e);
-        if (e.id == _lastEntityId) {
+        if (e.id == _lastEntityId - 1) {
             _lastEntityId--;
-            return *this;
+            return updateRemovedEntities();
         }
-        _removedEntitiesIds.push(e.id);
+        _removedEntitiesIds.push_back(e.id);
         return *this;
     }
 
@@ -1184,6 +1233,42 @@ public:
         for (auto& sys : _systems)
             sys.second->onEntityUpdate(*this, e);
         return *this;
+    }
+
+    /**
+     * @brief Remove a component to the given Entity
+     * 
+     * @tparam T The type of the component
+     * @tparam Args The other types of the arguments
+     * @tparam std::enable_if<sizeof...(Args) == 0>::type Used to avoid
+     * @param e The entity to remove the component from
+     * @return registry& The registry to chain the calls
+     */
+    template<typename T, typename ...Args,
+        typename std::enable_if<sizeof...(Args) == 0>::type* = nullptr>
+    inline registry& remove(const Entity& e)
+    {
+        _entities.get(e.id).unset(_cti<T>());
+        for (auto& sys : _systems)
+            sys.second->onEntityDelete(e);
+        return *this;
+    }
+
+    /**
+     * @brief Remove components to the given Entity
+     * 
+     * @tparam T The type of the component
+     * @tparam Args The other types of the arguments
+     * @tparam std::enable_if<sizeof...(Args) == 0>::type Used to avoid
+     * @param e The entity to remove the component from
+     * @return registry& The registry to chain the calls
+     */
+    template<typename T, typename... Args,
+        typename std::enable_if<sizeof...(Args) != 0>::type* = nullptr>
+    inline registry& remove(const Entity& e)
+    {
+        _entities.get(e.id).unset(_cti<T>());
+        return remove<Args...>(e);
     }
 
     /**
