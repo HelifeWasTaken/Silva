@@ -625,7 +625,7 @@ struct Entity {
     /**
      * @brief Id of the Entity
      */
-    EntityId id;
+    EntityId id = -1;
 
     /**
      * @brief Construct a new Entity
@@ -636,11 +636,10 @@ struct Entity {
     {
     }
 
-    inline Entity& operator=(const Entity& other)
-    {
-        id = other.id;
-        return *this;
-    }
+    /**
+     * @brief Construct an empty Entity
+     */
+    inline explicit Entity() = default;
 
     /**
      * @brief Tells if the Entity is equal to another Entity
@@ -1237,7 +1236,7 @@ public:
 
     /**
      * @brief Remove a component to the given Entity
-     * 
+     *
      * @tparam T The type of the component
      * @tparam Args The other types of the arguments
      * @tparam std::enable_if<sizeof...(Args) == 0>::type Used to avoid
@@ -1256,7 +1255,7 @@ public:
 
     /**
      * @brief Remove components to the given Entity
-     * 
+     *
      * @tparam T The type of the component
      * @tparam Args The other types of the arguments
      * @tparam std::enable_if<sizeof...(Args) == 0>::type Used to avoid
