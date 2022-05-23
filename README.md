@@ -41,17 +41,17 @@ int main()
     // To chain emplaces use the _r version for the other calls
     r.emplace<Velocity>(e, 1, 2)
         .emplace_r<Some>(0)
-        .emplace_r<Other>((Other) { 1 })
+        .emplace_r<Other>(1)
         .emplace_r<Test>(1, 2, 3);
 
     r.emplace<Velocity>(e2, 1, 2).emplace_r<Some>(0);
 
     // Add a system and the conresponding update function
     r.addSystem<Some>("test").setSystemUpdate(
-        [](const silva::Entity& e, silva::registry& r) {
-            auto& v = r.get<Some>(e);
-            std::cout << e << " " << v.a << std::endl;
-            v.a++;
+        [](const silva::Entity& entity, silva::registry& registry) {
+            auto& some = registry.get<Some>(entity);
+            std::cout << e << " " << some.a << std::endl;
+            some.a++;
         });
     r.update()
         .update()
@@ -62,28 +62,28 @@ int main()
     // They can be used to gather some informations
     // But avoid removing entities from the registry
     // while using them because it will invalidate the view
-    silva::View<Velocity&, Some&> v(r);
+    silva::View<Velocity, Some> v(r);
 
     // You can also avoid to specify the Entity parameter
-    v.each([](const Velocity& v, const Some& s) {
+    v.each([](const Velocity& velocity, const Some& some) {
         std::cout << "Each: "
-                  << "Entity(Noid)" << s.a << std::endl;
+                  << "Entity(Noid)" << some.a << std::endl;
     });
 
-    v.eachEntity([](const silva::Entity& e, const Velocity& v, Some& s) {
-        std::cout << "Each With Entity: " << e << " " << s.a << std::endl;
-        s.a++;
+    v.eachEntity([](const silva::Entity& e, const Velocity& velocity, Some& some) {
+        std::cout << "Each With Entity: " << e << " " << some.a << std::endl;
+        some.a++;
     });
 
     // You can use ranged for loops
-    for (auto& [e, v, s] : v) {
-        std::cout << "Ranged: " << e << " " << s.a << std::endl;
-        s.a++;
+    for (auto& [entity, velocity, some] : v) {
+        std::cout << "Ranged: " << e << " " << some.a << std::endl;
+        some.a++;
     }
 
     // And this for
     for (auto& e : v) {
-        std::cout << "For: " << std::get<Some&>(e).a << std::endl;
+        std::cout << "For: " << silva::get<Some>(e).a << std::endl;
     }
 }
 ```
