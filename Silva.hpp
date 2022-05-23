@@ -43,7 +43,7 @@ private:
     /**
      * @brief The error message
      */
-    std::string _msg;
+    const std::string _msg;
 
 public:
     /**
@@ -1567,23 +1567,6 @@ public:
                 throw Error(
                     std::string("operator*(): invalid iterator: ") + e.what());
             }
-        }
-
-        /**
-         * @brief Gets the current entity and its components
-         * @return const std::tuple<Entity, T&, Args&...> The current entity and
-         * its components
-         */
-        inline ViewValue<T, Args...>& operator->() { return *this; }
-
-        /**
-         * @brief Gets the current entity and its components
-         * @return std::tuple<Entity, T&, Args&...> The current entity and its
-         * components
-         */
-        inline const ViewValue<const T, const Args...>& operator->() const
-        {
-            return *this;
         }
     };
 
