@@ -589,6 +589,10 @@ TEST(SampleCase, sample1_with_r)
 
 static void random_entities_components_test_speed(const unsigned int entityCount, const unsigned time_limit_ms)
 {
+    if (std::getenv("SHLVL") != NULL && std::getenv("LD_PRELOAD") != NULL) {
+        GTEST_FATAL_FAILURE_(std::string("Not running speed tests with valgrind on").c_str());
+        return;
+    }
     double start = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     registry r;
@@ -656,6 +660,16 @@ TEST(Speed, create_random_entities_and_components_medium2)
 TEST(Speed, create_random_entities_and_components_medium3)
 {
     random_entities_components_test_speed(8000, 300);
+}
+
+TEST(Speed, create_random_entities_and_components_hard)
+{
+    random_entities_components_test_speed(15000, 500);
+}
+
+TEST(Speed, create_random_entities_and_components_hard2)
+{
+    random_entities_components_test_speed(20000, 500);
 }
 
 int main(int argc, char** argv)

@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <vector>
 #include <deque>
+#include <unordered_set>
 
 #include <iostream>
 
@@ -827,7 +828,7 @@ private:
     /**
      * @brief The ids of all the removed entities to reuse them
      */
-    std::vector<EntityId> _removedEntitiesIds;
+    std::unordered_set<EntityId> _removedEntitiesIds;
 
     /**
      * @brief The next index of the entities
@@ -1062,7 +1063,7 @@ public:
             _lastEntityId++;
             return _lastUsedEntity;
         }
-        _lastUsedEntity = Entity(_removedEntitiesIds.at(0));
+        _lastUsedEntity = Entity(*_removedEntitiesIds.begin());
         _entities.set(new priv::SparseArray<Component>(_componentArraySize),
             _lastUsedEntity.id);
         _removedEntitiesIds.erase(_removedEntitiesIds.begin());
@@ -1078,6 +1079,7 @@ public:
      */
     inline registry& updateRemovedEntities()
     {
+        /*
         std::sort(_removedEntitiesIds.begin(), _removedEntitiesIds.end());
         bool modified;
         do {
@@ -1101,6 +1103,16 @@ public:
         } while (modified);
         if (_removedEntitiesIds.empty() && _lastEntityId == 1)
             _lastEntityId = 0;
+        */
+        while (_removedEntitiesIds.size()) {
+            auto it = _removedEntitiesIds.find(_lastEntityId - 1);
+            if (it == _removedEntitiesIds.end())
+                break;
+            _removedEntitiesIds.erase(it);
+            _lastEntityId--;
+        }
+        if (_removedEntitiesIds.empty() && _lastEntityId == 1)
+            _lastEntityId = 0;
         return *this;
     }
 
@@ -1118,7 +1130,7 @@ public:
             _lastEntityId--;
             return updateRemovedEntities();
         }
-        _removedEntitiesIds.push_back(e.id);
+        _removedEntitiesIds.insert(e.id);
         return *this;
     }
 
