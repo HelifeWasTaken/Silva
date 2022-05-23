@@ -1069,7 +1069,13 @@ public:
         return _lastUsedEntity;
     }
 
-
+    /**
+     * @brief Is called to update the index of all the removed Entities
+     *        This is generally used to improve performance issues but it should
+     *        not be called at every frame because it would result as performance loss
+     *        It implements a binary search to if the entity is in the list
+     *
+     */
     inline registry& updateRemovedEntities()
     {
         std::sort(_removedEntitiesIds.begin(), _removedEntitiesIds.end());
@@ -1279,6 +1285,20 @@ public:
         for (auto& sys : _systems)
             sys.second->update(*this);
         return *this;
+    }
+
+    /**
+     * @brief Get a specifc system
+     * @param tag The tag of the system
+     * @param updateLast Used to avoid passing the system each time as a
+     * parameter (if true, _lastUsedSystem is updated to sys)
+     * @return System& The system
+     */
+    inline priv::System& getSystem(const std::string& tag, bool updateLast=true)
+    {
+        if (updateLast)
+            _lastUsedSystem = tag;
+        return *_systems.at(tag);
     }
 
     /**
