@@ -243,10 +243,5 @@ public:
             _currentState.pop();
         }
     }
-
-    /**
-     * @brief Destroy the StateManager object
-     */
-    ~StateManager() = default;
 };
 }
