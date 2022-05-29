@@ -2,7 +2,9 @@
 
 Simple dynamic data driven ecs
 
-## Example:
+Starting to become a collection of useful game development tools..
+
+## ECS example:
 
 ```cpp
 #include "Silva.hpp"
@@ -85,6 +87,85 @@ int main()
     for (auto& e : v) {
         std::cout << "For: " << silva::get<Some>(e).a << std::endl;
     }
+}
+```
+
+## SilvaState:
+
+```cpp
+#include "SilvaState.hpp"
+#include <iostream>
+
+silva::StateMachine *g_sm:
+
+class SampleState : public silva::State {
+public:
+    void init() override
+    {
+        std::cout << "Enter" << std::endl;
+    }
+
+    void exit() override
+    {
+        std::cout << "Exit" << std::endl;
+    }
+
+    void update() override
+    {
+        std::cout << "Update" << std::endl;
+
+        if (someEvent) {
+            g_sm->changeState<OtherState>(); // placeholder state that can behave like this state
+        } else if (someOtherEvent) {
+            g_sm->stop(); // stop the state machine
+            return;
+        }
+        // If you called stop() accessing members of the state
+        // will result in undefined behavior (probably a crash)
+    }
+
+// In case the draw needs to be separated from the update
+#ifdef SILVA_DRAW
+    void draw() override
+    {
+        std::cout << "Draw" << std::endl;
+    }
+#endif
+
+// In case the event management needs to be separated from the update
+#ifdef SILVA_HANDLE_EVENT
+    void handleEvent() override
+    {
+        std::cout << "Handle Event" << std::endl;
+    }
+#endif
+
+    SampleState()
+    {
+        std::cout << "Constructor" << std::endl;
+    }
+
+    ~SampleState()
+    {
+        std::cout << "Destructor" << std::endl;
+    }
+};
+
+int main()
+{
+    // Create a state machine (Note that the state machine must always have a base state)
+    g_sm = new silva::StateMachine<SampleState>();
+
+    while (g_sm.update()) { // Update the state machine
+#ifdef SILVA_DRAW
+        g_sm.draw(); // Draw the state machine
+#endif
+#ifdef SILVA_HANDLE_EVENT
+        g_sm.handleEvent(); // Handle the event
+#endif
+    }
+    delete g_sm;
+    return 0;
 }
 ```
 
