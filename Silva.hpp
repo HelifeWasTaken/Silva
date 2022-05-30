@@ -1244,9 +1244,11 @@ public:
     template <typename T, typename... Args>
     inline registry& emplace(const Entity& e, Args&&... args)
     {
+        T var = { std::forward<Args>(args)... };
+
         _lastUsedEntity = e;
         _entities.get(e.id).set(
-            new Component((T) { std::forward<Args>(args)... }), _cti<T>());
+            new Component(std::move(var)), _cti<T>());
         for (auto& sys : _systems)
             sys.second->onEntityUpdate(*this, e);
         return *this;
