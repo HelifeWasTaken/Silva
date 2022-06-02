@@ -288,7 +288,7 @@ namespace priv {
          * @brief Get the size of the SparseArray
          * @return std::size_t The value at the given index
          */
-        inline const std::size_t size() const { return _registry.size(); }
+        inline std::size_t size() const { return _registry.size(); }
 
         /**
          * @brief Iterator to iterate over the SparseArray
