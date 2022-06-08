@@ -154,8 +154,9 @@ public:
 int main()
 {
     // Create a state machine (Note that the state machine must always have a base state)
-    g_sm = new silva::StateMachine<SampleState>();
+    g_sm = new silva::StateMachine();
 
+    g_sm->changeState<SampleState>();
     while (g_sm.update()) { // Update the state machine
 #ifdef SILVA_DRAW
         g_sm.draw(); // Draw the state machine

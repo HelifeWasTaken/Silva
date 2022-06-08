@@ -126,15 +126,8 @@ private:
 public:
     /**
      * @brief Construct a new StateManager object
-     * @tparam T The type of the state
-     * @tparam Args The types of the arguments
      */
-    template<typename T, typename ...Args>
-    StateManager(Args&&... args)
-    {
-        _currentState.push(std::make_unique<T>(std::forward<Args>(args)...));
-        _currentState.top()->init();
-    }
+    StateManager() = default;
 
     /**
      * @brief Destroy the StateManager object
