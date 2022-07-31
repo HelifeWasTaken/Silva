@@ -39,11 +39,6 @@ public:
     IState() = default;
 
     /**
-     * @brief Initialize the state
-     */
-    virtual void init() = 0;
-
-    /**
      * @brief Update the state
      */
     virtual void update() = 0;
@@ -61,11 +56,6 @@ public:
      */
     virtual void handleEvent() = 0;
 #endif
-
-    /**
-     * @brief Exit the state
-     */
-    virtual void exit() = 0;
 };
 }
 
@@ -79,16 +69,6 @@ public:
      * @brief Construct a new State object
      */
     State() = default;
-
-    /**
-     * @brief Initialize the State object
-     */
-    void init() override {}
-
-    /**
-     * @brief Exit the State object
-     */
-    void exit() override {}
 
 #ifdef SILVA_STATE_DRAW
     /**
@@ -123,6 +103,12 @@ private:
      */
     std::stack<std::unique_ptr<State>> _currentState;
 
+    /**
+     * @brief Number of states to pop in the next update
+     *
+     */
+    unsigned int _toPopCount = 0;
+
 public:
     /**
      * @brief Construct a new StateManager object
@@ -139,7 +125,7 @@ public:
      */
     void popState()
     {
-        _currentState.pop();
+        _toPopCount++;
     }
 
     /**
@@ -191,10 +177,14 @@ public:
      */
     bool update()
     {
+        if (_toPopCount) {
+            for (; _currentState.empty() == false && _toPopCount;
+                    _currentState.pop(), --_toPopCount);
+            _toPopCount = 0;
+        }
         if (_pendingState.get()) {
             stop();
             _currentState.push(std::move(_pendingState));
-            _currentState.top()->init();
         } else if (!canBeUpdated()) {
             return false;
         }
@@ -231,8 +221,8 @@ public:
      */
     void stop()
     {
+        _toPopCount = 0;
         while (!_currentState.empty()) {
-            _currentState.top()->exit();
             _currentState.pop();
         }
     }
