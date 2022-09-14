@@ -52,8 +52,7 @@ public:
      */
     inline Error(const std::string& msg)
         : _msg(msg)
-    {
-    }
+    {}
 
     /**
      * @brief Get the error message

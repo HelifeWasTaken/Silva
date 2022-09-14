@@ -31,12 +31,12 @@ public:
     /**
      * @brief Destroy the IState object
      */
-    virtual ~IState() = default;
+    inline virtual ~IState() = default;
 
     /**
      * @brief Construct a new IState object
      */
-    IState() = default;
+    inline IState() = default;
 
     /**
      * @brief Update the state
@@ -68,23 +68,23 @@ public:
     /**
      * @brief Construct a new State object
      */
-    State() = default;
+    inline State() = default;
 
 #ifdef SILVA_STATE_DRAW
     /**
      * @brief Draw the State object
      */
-    void draw() override {}
+    inline void draw() override {}
 #endif
 
 #ifdef SILVA_STATE_HANDLE_EVENT
     /**
      * @brief Handle the events
      */
-    void handleEvent() override {}
+    inline void handleEvent() override {}
 #endif
 
-    ~State() override {}
+    inline ~State() override {}
 };
 
 /**
@@ -119,17 +119,18 @@ public:
     /**
      * @brief Construct a new StateManager object
      */
-    StateManager() = default;
+    inline StateManager() = default;
 
     /**
      * @brief Destroy the StateManager object
      */
-    ~StateManager() = default;
+    inline ~StateManager() = default;
 
     /**
      * @brief Pop the state from the stack
      */
-    void popState() { ++_toPopCount; }
+    inline void popState()
+    { ++_toPopCount; }
 
     /**
      * @brief Push a new state on the stack
@@ -137,7 +138,7 @@ public:
      * @tparam Args The types of the arguments
      */
     template<typename T, typename ...Args>
-    void pushState(Args&&... args)
+    inline void pushState(Args&&... args)
     { _currentState.push(std::make_unique<T>(std::forward<Args>(args)...)); }
 
     /**
@@ -150,25 +151,25 @@ public:
      * @tparam Args The types of the arguments
      */
     template<typename T, typename ...Args>
-    void changeState(Args&&... args)
+    inline void changeState(Args&&... args)
     { _pendingState = std::make_unique<T>(std::forward<Args>(args)...); }
 
     /**
      * @brief Tells wheter the state will be changed
      */
-    bool isInTransition() const
-    { return _pendingState.get() != nullptr; }
+    inline bool isInTransition() const
+    { return _pendingState.get(); }
 
     /**
      * @brief Tells wheter the state machine is empty
      */
-    bool canBeUpdated() const
-    { return _currentState.empty() == false; }
+    inline bool canBeUpdated() const
+    { return !_currentState.empty(); }
 
     /**
      * @brief Tells the state machine depth
      */
-    size_t getDepth() const
+    inline size_t getDepth() const
     { return _currentState.size(); }
 
     /**
@@ -177,7 +178,7 @@ public:
      *        All the stacked states are exited and the pending state is pushed
      *        on the stack and initialized
      */
-    bool update()
+    inline bool update()
     {
         _actualPopState();
         if (isInTransition()) {
@@ -194,7 +195,7 @@ public:
     /**
      * @brief Draw the state
      */
-    void draw()
+    inline void draw()
     {
         if (!canBeUpdated())
             return;
@@ -206,7 +207,7 @@ public:
     /**
      * @brief Handle the events
      */
-    void handleEvent()
+    inline void handleEvent()
     {
         if (!canBeUpdated())
             return;
@@ -217,7 +218,7 @@ public:
     /**
      * @brief Stop the state machine
      */
-    void stop()
+    inline void stop()
     {
         _toPopCount = _currentState.size();
         _pendingState = nullptr;
