@@ -107,7 +107,13 @@ private:
      * @brief Number of states to pop in the next update
      *
      */
-    unsigned int _toPopCount = 0;
+    std::size_t _toPopCount = 0;
+
+    void _actualPopState()
+    {
+        for (; _toPopCount && !_currentState.empty(); --_toPopCount);
+        _toPopCount = 0;
+    }
 
 public:
     /**
@@ -123,10 +129,7 @@ public:
     /**
      * @brief Pop the state from the stack
      */
-    void popState()
-    {
-        _toPopCount++;
-    }
+    void popState() { ++_toPopCount; }
 
     /**
      * @brief Push a new state on the stack
@@ -135,9 +138,7 @@ public:
      */
     template<typename T, typename ...Args>
     void pushState(Args&&... args)
-    {
-        _currentState.push(std::make_unique<T>(std::forward<Args>(args)...));
-    }
+    { _currentState.push(std::make_unique<T>(std::forward<Args>(args)...)); }
 
     /**
      * @brief Change the current state
@@ -150,24 +151,25 @@ public:
      */
     template<typename T, typename ...Args>
     void changeState(Args&&... args)
-    {
-        _pendingState = std::make_unique<T>(std::forward<Args>(args)...);
-    }
+    { _pendingState = std::make_unique<T>(std::forward<Args>(args)...); }
 
     /**
      * @brief Tells wheter the state will be changed
      */
-    bool isInTransition() const { return _pendingState.get() != nullptr; }
+    bool isInTransition() const
+    { return _pendingState.get() != nullptr; }
 
     /**
      * @brief Tells wheter the state machine is empty
      */
-    bool canBeUpdated() const { return _currentState.empty() == false; }
+    bool canBeUpdated() const
+    { return _currentState.empty() == false; }
 
     /**
      * @brief Tells the state machine depth
      */
-    size_t getDepth() const { return _currentState.size(); }
+    size_t getDepth() const
+    { return _currentState.size(); }
 
     /**
      * @brief Update the state machine
@@ -177,12 +179,8 @@ public:
      */
     bool update()
     {
-        if (_toPopCount) {
-            for (; _currentState.empty() == false && _toPopCount;
-                    _currentState.pop(), --_toPopCount);
-            _toPopCount = 0;
-        }
-        if (_pendingState.get()) {
+        _actualPopState();
+        if (isInTransition()) {
             stop();
             _currentState.push(std::move(_pendingState));
         } else if (!canBeUpdated()) {
@@ -221,10 +219,8 @@ public:
      */
     void stop()
     {
-        _toPopCount = 0;
-        while (!_currentState.empty()) {
-            _currentState.pop();
-        }
+        _toPopCount = _currentState.size();
+        _pendingState = nullptr;
     }
 };
 }
