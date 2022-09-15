@@ -42,11 +42,11 @@ int main()
 
     // To chain emplaces use the _r version for the other calls
     r.emplace<Velocity>(e, 1, 2)
-        .emplace_r<Some>(0)
-        .emplace_r<Other>(1)
-        .emplace_r<Test>(1, 2, 3);
+        .emplace<Some>(0)
+        .emplace<Other>(1)
+        .emplace<Test>(1, 2, 3);
 
-    r.emplace<Velocity>(e2, 1, 2).emplace_r<Some>(0);
+    r.emplace<Velocity>(e2, 1, 2).emplace<Some>(0);
 
     // Add a system and the conresponding update function
     r.addSystem<Some>("test").setSystemUpdate(

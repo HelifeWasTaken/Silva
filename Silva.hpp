@@ -20,6 +20,10 @@
  */
 #pragma once
 
+#if __cplusplus < 201703L
+    #error "Please use a compiler that supports at least 201703 (C++17 March Release)"
+#endif
+
 #include <any>
 #include <exception>
 #include <functional>
@@ -30,8 +34,6 @@
 #include <vector>
 #include <deque>
 #include <unordered_set>
-
-#include <iostream>
 
 namespace silva {
 
@@ -613,6 +615,12 @@ using ViewValue = std::tuple<Entity, Args&...>;
 
 template <typename... Args>
 using ViewContainer = std::vector<std::unique_ptr<ViewValue<Args...>>>;
+
+template <typename R, typename... Args>
+inline R& get(ViewValue<Args...>& h) { return std::get<R&>(h); }
+
+template <typename R, typename... Args>
+inline const R& get(const ViewValue<Args...>& h) { return std::get<R&>(h); }
 
 /**
  * @brief Entity is a single ID wrapped around a struct
@@ -1218,18 +1226,20 @@ public:
     }
 
     /**
-     * @brief Calls emplace on the last used Entity (Is used to chain emplace
-     * calls)
+     * @brief Calls emplace and determines which implementation to use
      * @tparam T The type of the component
      * @tparam Args... The types of the arguments
      * @param args The arguments of the emplace call
      * @return registry& The registry to chain the calls
      */
-    template <typename T, typename... Args>
-    inline registry& emplace_r(Args&&... args)
+    template <typename T, typename U, typename... Args>
+    inline registry& emplace(const U& maybeEntity, Args&&... args)
     {
-        return emplace<T, Args...>(
-            _lastUsedEntity, std::forward<Args>(args)...);
+        if constexpr (!std::is_same<const Entity&, decltype(maybeEntity)>()) {
+            return entity_emplace<T, U, Args...>(_lastUsedEntity, U(maybeEntity), std::forward<Args>(args)...);
+        } else {
+            return entity_emplace<T, Args...>(Entity(maybeEntity.id), std::forward<Args>(args)...);
+        }
     }
 
     /**
@@ -1241,7 +1251,7 @@ public:
      * @return registry& The registry to chain the calls
      */
     template <typename T, typename... Args>
-    inline registry& emplace(const Entity& e, Args&&... args)
+    inline registry& entity_emplace(const Entity& e, Args&&... args)
     {
         T var = { std::forward<Args>(args)... };
 
@@ -1583,11 +1593,5 @@ public:
      */
     inline Iterator end() { return Iterator(_tuple, _tuple.size()); }
 };
-
-template <typename R, typename... Args>
-inline R& get(ViewValue<Args...>& h) { return std::get<R&>(h); }
-
-template <typename R, typename... Args>
-inline const R& get(const ViewValue<Args...>& h) { return std::get<R&>(h); }
 
 } // namespace silva
