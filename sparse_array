@@ -6,6 +6,7 @@
 
 namespace hl {
 namespace silva {
+
     template <typename T>
     class sparse_array
     {
@@ -25,7 +26,7 @@ namespace silva {
          */
         sparse_array()
         {
-            _data.assign(ECS_ENTITY_PAGESIZE, std::nullopt);
+            _data.assign(20, std::nullopt);
         }
 
         ~sparse_array() = default;
