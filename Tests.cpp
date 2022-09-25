@@ -1,6 +1,8 @@
-#include "Silva.hpp"
+#include "Silva"
 #include <gtest/gtest.h>
 #include <chrono>
+
+using namespace hl;
 
 #define MAKE_DUMMY(n) struct dummy##n { int x; }
 
