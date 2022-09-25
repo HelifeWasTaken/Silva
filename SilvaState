@@ -18,6 +18,8 @@
 #include <memory>
 #include <stack>
 
+namespace hl
+{
 namespace silva
 {
 namespace priv
@@ -224,4 +226,5 @@ public:
         _pendingState = nullptr;
     }
 };
+}
 }

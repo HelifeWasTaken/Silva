@@ -39,6 +39,8 @@
 
 #define SILVA_ECS_ENTITY_PAGESIZE 1000
 
+namespace hl
+{
 namespace silva
 {
     class Entity
@@ -489,4 +491,5 @@ namespace silva
         const zipper_iterator _end;
         const zipper_iterator _begin;
     };
+}
 }
