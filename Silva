@@ -97,7 +97,7 @@ namespace silva
         using component_index_t = std::size_t;
         using component_registry = std::unordered_map<std::type_index, component_index_t>;
         template <typename Component>
-        using component_array = hl::sparse_array<Component>;
+        using component_array = hl::silva::sparse_array<Component>;
         using components_array = std::vector<anonymous_t>;
         using component_removal_system_t = std::function<void(registry &, entity_t const &)>;
         using component_removal_system_array = std::vector<component_removal_system_t>;
