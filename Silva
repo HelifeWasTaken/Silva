@@ -37,8 +37,6 @@
 
 #include "sparse_array"
 
-#define SILVA_ECS_ENTITY_PAGESIZE 1000
-
 namespace hl
 {
 namespace silva
