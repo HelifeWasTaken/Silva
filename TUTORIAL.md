@@ -63,76 +63,31 @@ struct Position {
     int x, y, z;
 };
 
-int main()
-{
-    silva::registry registry;
-
-    for (int i = 0; i < 100; i++) {
-        silva::Entity e = registry.newEntity();
-        registry.emplace<Position>(e, rand(), rand(), rand());
-        registry.emplace<RigidBody>(e, 5, 0, 0);
-        registry.emplace<Gravity>(e, 0, -9.8, 0);
-    }
-
-    // Only take the entities that have a RigidBody a Position and a Gravity component
-    registry.addSystem<Position, RigidBody, Gravity>("EarthSystem");
-
-    registry.setSystemUpdate("EarthSystem",
-        [](const silva::Entity& entity, silva::registry& registry)
-        {
-            auto& position = registry.get<Position>(entity);
-            auto& rigidBody = registry.get<RigidBody>(entity);
-            auto& gravity = registry.get<Gravity>(entity);
-
-            // This is not an accurate Earth system force application
-            // It is just here for the example
-            position.y += rigidBody.velocity;
-            rigidBody.velocity += rigidBody.acceleration;
-            position.x += gravity.x;
-            position.y += gravity.y;
-            position.z += gravity.z;
-        }
-    );
-
-    registry.update(); // Call the update of every registered Systems
-    return 0;
-}
-```
-
-### ECS Aliases:
-
-It is annoying to always pass the Entity element when you want to access a component.
-
-So the system store in mind the last used Entity and the last used System to speed the development process.
-
-Here is the last example rewritten with aliases
-
 ```cpp
 int main()
 {
     silva::registry registry;
 
+    registry.register_component<Position, RigidBody, Gravity>();
+
     for (int i = 0; i < 100; i++) {
-        registry.emplace<Position>(registry.newEntity(),rand(), rand(), rand())
+        registry.emplace<Position>(registry.spawn_entity(),rand(), rand(), rand())
             .emplace_r<RigidBody>(5, 0, 0) // Emplace r uses the last used Entity
             .emplace_r<Gravity>(0, -9.8, 0);
     }
 
     // Only take the entities that have a RigidBody a Position and a Gravity component
-    registry.addSystem<Position, RigidBody, Gravity>("EarthSystem")
-        .setSystemUpdate([](const silva::Entity& entity, silva::registry& registry)
+    registry.add_system([](hl::silva::registry& registry)
         {
-            auto& position = registry.get<Position>(entity);
-            auto& rigidBody = registry.get<RigidBody>();
-            auto& gravity = registry.get<Gravity>();
-
-            // This is not an accurate Earth system force application
-            // It is just here for the example
-            position.y += rigidBody.velocity;
-            rigidBody.velocity += rigidBody.acceleration;
-            position.x += gravity.x;
-            position.y += gravity.y;
-            position.z += gravity.z;
+            for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
+                // This is not an accurate Earth system force application
+                // It is just here for the example
+                position.y += rigidBody.velocity;
+                rigidBody.velocity += rigidBody.acceleration;
+                position.x += gravity.x;
+                position.y += gravity.y;
+                position.z += gravity.z;
+            }
         }
     );
 
@@ -148,14 +103,16 @@ For this example I will use the `silva::View` class to iterate over the entities
 ```cpp
 int main()
 {
-    silva::registry registry;
+    hl::silva::registry registry;
+
+    registry.register_component<int>();
 
     for (int i = 0; i < 100; i++) {
         registry.emplace<int>(registry.newEntity(), 0);
     }
 
     // Get the view of the registry
-    silva::View view = registry.view<int>();
+    hl::silva::view view = registry.view<int>();
 
     // Basic iteration over the entities
    for (auto& entity : view) {
@@ -173,14 +130,6 @@ int main()
             break; // You can break the loop!
         }
     }
-
-    // Applicate functions like the system
-    view.each([](const silva::Entity& entity, int& value) {
-        value++;
-        if (value == 42) {
-            // You cannot break the loop :(
-        }
-    });
 }
 ```
 
@@ -189,7 +138,9 @@ int main()
 ```cpp
 int main()
 {
-    silva::registry registry;
+    hl::silva::registry registry;
+
+    registry.register_component<int, float>();
 
     for (int i = 0; i < 100; i++) {
         registry.emplace<int>(registry.newEntity(), 0);
@@ -197,12 +148,12 @@ int main()
     }
 
     // Get the view of the registry
-    silva::View view = registry.view<int, float>();
+    silva::view view = registry.view<int, float>();
 
     // Basic iteration over the entities
     for (auto& entity : view) {
-          auto& value = silva::get<int>(entity);
-          auto& value2 = silva::get<float>(entity);
+          auto& value = hl::silva::get<int>(entity);
+          auto& value2 = hl::silva::get<float>(entity);
           value++;
           value2++;
           if (value == 42) {
@@ -218,15 +169,6 @@ int main()
             break; // You can break the loop!
         }
     }
-
-    // Applicate functions like the system
-    view.each([](const silva::Entity& entity, int& value, float& value2) {
-        value++;
-        value2++;
-        if (value == 42) {
-            // You cannot break the loop :(
-        }
-    });
 }
 ```
 
