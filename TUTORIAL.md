@@ -10,8 +10,8 @@ It is named `silva::registry`.
 ### Create your first Entity:
 
 ```cpp
-silva::registry registry;
-silva::Entity entity = registry.newEntity();
+hl::silva::registry registry;
+hl::silva::Entity entity = registry.spawn_entity();
 ```
 
 The use of an entity is to store any types of components.
@@ -23,8 +23,9 @@ A component is a piece of data that is attached to an entity.
 Here is how to attach a component:
 
 ```cpp
-silva::registry registry;
-silva::Entity entity = registry.newEntity();
+hl::silva::registry registry;
+registry.register_component<int>();
+hl::silva::Entity entity = registry.spawn_entity();
 registry.emplace<int>(entity, 42);
 ```
 
@@ -108,20 +109,11 @@ int main()
     registry.register_component<int>();
 
     for (int i = 0; i < 100; i++) {
-        registry.emplace<int>(registry.newEntity(), 0);
+        registry.emplace<int>(registry.spawn_entity(), 0);
     }
 
     // Get the view of the registry
     hl::silva::view view = registry.view<int>();
-
-    // Basic iteration over the entities
-   for (auto& entity : view) {
-        auto& value = silva::get<int>(entity);
-        value++;
-        if (value == 42) {
-            break; // You can break the loop!
-        }
-    }
 
     // Unpack the values of the entities
     for (auto& [entity, value] : view) {
@@ -143,23 +135,12 @@ int main()
     registry.register_component<int, float>();
 
     for (int i = 0; i < 100; i++) {
-        registry.emplace<int>(registry.newEntity(), 0);
-        registry.emplace<float>(registry.newEntity(), 0);
+        registry.emplace<int>(registry.spawn_entity(), 0);
+        registry.emplace<float>(registry.spawn_entity(), 0);
     }
 
     // Get the view of the registry
     silva::view view = registry.view<int, float>();
-
-    // Basic iteration over the entities
-    for (auto& entity : view) {
-          auto& value = hl::silva::get<int>(entity);
-          auto& value2 = hl::silva::get<float>(entity);
-          value++;
-          value2++;
-          if (value == 42) {
-                break; // You can break the loop!
-          }
-     }
 
     // Unpack the values of the entities
     for (auto& [entity, value, value2] : view) {
