@@ -21,10 +21,6 @@
 
 #pragma once
 
-#if __cplusplus < 201703L
-    #error "Please use a compiler that supports at least 201703 (C++17 March Release)"
-#endif
-
 #include <any>
 #include <vector>
 #include <typeinfo>
