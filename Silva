@@ -303,6 +303,21 @@ namespace silva
         {
             return _entities_count;
         }
+        
+        /**
+         * @brief Get the component of an entity
+         * @param e: The entity
+         * @tparam Component: The component
+         */
+        template<typename Component>
+        Component &get_component(entity_t const &e)
+        {
+            auto& ref = get_components<Component>().get(e.get_id());
+            if (ref.has_value() == false)
+                throw std::runtime_error("Entity does not have the component");
+            return ref.value();
+        }
+
         /**
          * @brief  Return the number of killed entities
          * @retval Number of killed entities
