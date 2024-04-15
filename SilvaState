@@ -12,6 +12,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * Made by: Mattis DALLEAU
  */
 #pragma once
 
@@ -22,209 +24,210 @@ namespace hl
 {
 namespace silva
 {
-namespace priv
-{
+
+// Forward declaration
+class StateManager;
+
 /**
- * @brief Brief implementation of private State Interface
+ * @brief State class
+ * 
+ * This class is the base class for all states
+ * 
+ * @param manager The state manager
  */
-class IState
+class AState 
 {
+private:
+    StateManager *m_manager;
+
 public:
-    /**
-     * @brief Destroy the IState object
-     */
-    inline virtual ~IState() = default;
+    AState() = default;
+    virtual ~AState() = default;
 
-    /**
-     * @brief Construct a new IState object
-     */
-    inline IState() = default;
+    // In case stuff needs to be done after the creation of the state
+    // But only when the state is ready to be use
+    virtual void init() = 0;
 
-    /**
-     * @brief Update the state
-     */
     virtual void update() = 0;
 
-#ifdef SILVA_STATE_DRAW
-    /**
-     * @brief Draw the state
-     */
-    virtual void draw() = 0;
+#ifdef SILVA_STATE_EVENT
+    virtual void event() = 0;
 #endif
 
-#ifdef SILVA_STATE_HANDLE_EVENT
-    /**
-     * @brief Handle the events
-     */
-    virtual void handleEvent() = 0;
+#ifdef SILVA_STATE_RENDER
+    virtual void render() = 0;
 #endif
+
+    StateManager &state_manager() const;
+
+    void set_state_manager(StateManager *manager)
+    {
+        m_manager = manager;
+    }
 };
-}
 
-/**
- * @brief Base abstract class for a State
- */
-class State : public priv::IState
+class State : public AState
 {
+private:
+    using AState::set_state_manager;
+
 public:
-    /**
-     * @brief Construct a new State object
-     */
-    inline State() = default;
+    State() = default;
+    virtual ~State() = default;
 
-#ifdef SILVA_STATE_DRAW
-    /**
-     * @brief Draw the State object
-     */
-    inline void draw() override {}
+    virtual void init() override
+    {
+    }
+
+    virtual void update() override
+    {
+    }
+
+#ifdef SILVA_STATE_EVENT
+    virtual void event() override
+    {
+    }
 #endif
 
-#ifdef SILVA_STATE_HANDLE_EVENT
-    /**
-     * @brief Handle the events
-     */
-    inline void handleEvent() override {}
+#ifdef SILVA_STATE_RENDER
+    virtual void render() override
+    {
+    }
 #endif
-
-    inline ~State() override {}
 };
 
 /**
- * @brief State Manager
+ * @brief StateManager class
+ * 
+ * This class is the manager of all states
  */
 class StateManager
 {
 private:
-    /**
-     * @brief The current pending state
-     */
-    std::unique_ptr<State> _pendingState = nullptr;
+    std::stack<std::unique_ptr<AState>> m_states;
+    std::unique_ptr<AState> m_pending_state;
+    std::size_t m_pop_count = 0;
 
-    /**
-     * @brief All the stacked states
-     */
-    std::stack<std::unique_ptr<State>> _currentState;
-
-    /**
-     * @brief Number of states to pop in the next update
-     *
-     */
-    std::size_t _toPopCount = 0;
-
-    void _actualPopState()
+    void _pop_states_internal()
     {
-        for (; _toPopCount && !_currentState.empty(); --_toPopCount);
-        _toPopCount = 0;
+        for (std::size_t i = 0; i < m_pop_count; i++) {
+            m_states.pop();
+        }
+    }
+
+    // Function pointer to the update coroutine
+    template<void(AState::*func)()>
+    bool _basic_update_coroutine()
+    {
+        _pop_states_internal();
+        if constexpr(func == &AState::update) {
+            if (m_pending_state) {
+                m_pending_state->init();
+                m_states.push(std::move(m_pending_state));
+            }
+        }
+
+        if (m_states.empty()) {
+            return false;
+        }
+        (m_states.top().get()->*func)();
+        return true;
     }
 
 public:
     /**
      * @brief Construct a new StateManager object
      */
-    inline StateManager() = default;
+    StateManager() = default;
 
     /**
      * @brief Destroy the StateManager object
      */
-    inline ~StateManager() = default;
+    ~StateManager() = default;
 
     /**
-     * @brief Pop the state from the stack
-     */
-    inline void popState()
-    { ++_toPopCount; }
-
-    /**
-     * @brief Push a new state on the stack
+     * @brief Emplace a new state
+     * 
      * @tparam T The type of the state
-     * @tparam Args The types of the arguments
+     * @tparam Args The arguments of the state
+     * @param args The arguments of the state
      */
-    template<typename T, typename ...Args>
-    inline void pushState(Args&&... args)
-    { _currentState.push(std::make_unique<T>(std::forward<Args>(args)...)); }
-
-    /**
-     * @brief Change the current state
-     *        when called only the pendingState is modified
-     *        until the next update
-     *        At the next update the currentState stack will be emptied
-     *        and the pendingState will be pushed on the stack
-     * @tparam T The type of the state
-     * @tparam Args The types of the arguments
-     */
-    template<typename T, typename ...Args>
-    inline void changeState(Args&&... args)
-    { _pendingState = std::make_unique<T>(std::forward<Args>(args)...); }
-
-    /**
-     * @brief Tells wheter the state will be changed
-     */
-    inline bool isInTransition() const
-    { return _pendingState.get(); }
-
-    /**
-     * @brief Tells wheter the state machine is empty
-     */
-    inline bool canBeUpdated() const
-    { return !_currentState.empty(); }
-
-    /**
-     * @brief Tells the state machine depth
-     */
-    inline size_t getDepth() const
-    { return _currentState.size(); }
-
-    /**
-     * @brief Update the state machine
-     *        If a state is pending (Which is different from pushed)
-     *        All the stacked states are exited and the pending state is pushed
-     *        on the stack and initialized
-     */
-    inline bool update()
+    template<typename T, typename... Args>
+    void push(Args&&... args)
     {
-        _actualPopState();
-        if (isInTransition()) {
-            stop();
-            _currentState.push(std::move(_pendingState));
-        } else if (!canBeUpdated()) {
-            return false;
+        auto state = std::make_unique<T>(std::forward<Args>(args)...);
+        AState &state_ref = *state;
+        state_ref.set_state_manager(this);
+        m_pending_state = std::move(state);
+    }
+
+    /**
+     * @brief Emplace a new state and remove all the other states
+     * 
+     * @tparam T The type of the state
+     * @tparam Args The arguments of the state
+     * @param args The arguments of the state
+     */
+    template<typename T, typename... Args>
+    void replace(Args&&... args)
+    {
+        stop(true);
+        push<T>(std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Pop a state
+     */
+    void pop()
+    {
+        m_pop_count = std::min(m_pop_count + 1, m_states.size());
+    }
+
+    /**
+     * @brief Stops the state manager (Actually stops after the next update)
+     * @param remove_pending If true, the pending state will be removed (default: false
+     * @note This function is not immediate, it will stop after the next update()
+     */
+    void stop(bool remove_pending = false)
+    {
+        if (remove_pending) {
+            m_pending_state.reset();
         }
-        _currentState.top()->update();
-        return true;
+        m_pop_count = m_states.size();
     }
 
-#ifdef SILVA_STATE_DRAW
     /**
-     * @brief Draw the state
+     * @brief Update the current state
+     * @return true If the state has been updated
      */
-    inline void draw()
+    bool update()
     {
-        if (!canBeUpdated())
-            return;
-        _currentState.top()->draw();
+        return _basic_update_coroutine<&AState::update>();
+    }
+
+#ifdef SILVA_STATE_EVENT
+    /**
+     * @brief Event the current state
+     * @return true If the state has been evented
+     */
+    bool event()
+    {
+        return _basic_update_coroutine(&AState::event);
     }
 #endif
 
-#ifdef SILVA_STATE_HANDLE_EVENT
+#ifdef SILVA_STATE_RENDER
     /**
-     * @brief Handle the events
+     * @brief Render the current state
+     * @return true If the state has been rendered
      */
-    inline void handleEvent()
+    void render()
     {
-        if (!canBeUpdated())
-            return;
-        _currentState.top()->handleEvent();
+        return _basic_update_coroutine(&AState::render);
     }
 #endif
 
-    /**
-     * @brief Stop the state machine
-     */
-    inline void stop()
-    {
-        _toPopCount = _currentState.size();
-        _pendingState = nullptr;
-    }
 };
+
 }
 }

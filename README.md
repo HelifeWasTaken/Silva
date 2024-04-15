@@ -7,7 +7,7 @@ Starting to become a collection of useful game development tools..
 ## ECS example:
 
 ```cpp
-#include "Silva.hpp"
+#include "Silva"
 #include <iostream>
 
 struct Velocity {
@@ -36,71 +36,47 @@ public:
 
 int main()
 {
-    silva::registry r;
-    silva::Entity e = r.spawn_entity();
-    silva::Entity e2 = r.spawn_entity();
+    hl::silva::Registry r;
 
-    // To chain emplaces use the _r version for the other calls
-    r.emplace<Velocity>(e, 1, 2)
+    // Register components
+    r.register_components<Velocity,Some,Other,Test>();
+
+    // Create entities and emplace components
+    r.emplace<Velocity>(r.spawn_entity(), 1, 2)
         .emplace_r<Some>(0)
         .emplace_r<Other>(1)
         .emplace_r<Test>(1, 2, 3);
+    r.emplace<Velocity>(r.spawn_entity(), 1, 2).emplace_r<Some>(0);
 
-    r.emplace<Velocity>(e2, 1, 2).emplace_r<Some>(0);
+
+    // zipper are slices equivalent, They can be used to gather some informations
+    // But avoid removing entities from the registry, while using them because it will invalidate the view
+    // Also do not remove a used component in the view while using the zipper
+    // You can use ranged for loops
+    // (It returns references by default by using auto)
+    // (You cannot use auto& because the tuple is a temporary object)
+    // You may use auto&& but should not be necessary and adds complexity
+    hl::silva::Zipper<Velocity, Some> v(r);
+    for (auto [entity, velocity, some] : v) {
+        std::cout << "Ranged: " << entity << " " << some.a << std::endl;
+        some.a += entity.get_id();
+    }
+    // if you did not use ranged for (auto [e, v, s] : v) but the normal for (auto var : v)
+    // you will have to use var.get<T>() to get the component
 
     // Add a system and the conresponding update function
     r.add_system(
-        [](silva::registry& registry) {
-            for (auto& [entity, some] : registry.view<Some>()) {
+        [](hl::silva::Registry& registry) {
+            for (auto [entity, some] : registry.view<Some>()) {
                 std::cout << entity << " " << some.a << std::endl;
                 some.a++;
             }
         });
-    r.update()
-        .update()
-        .update()
-        .update(); // Call the update of the test System 4 times
 
-    // zipper are slices equivalent
-    // They can be used to gather some informations
-    // But avoid removing entities from the registry
-    // while using them because it will invalidate the view
-    silva::zipper<Velocity, Some> v(r);
-
-// Commented code is down deprecated it is considered better to use
-// STL std::begin and std::end or foreach than to implement or own each
-// It is considered better for portability
-// Now zipper is simply an iterator over all the valid types
-// It may be improved by implementing cache for the systems using
-// directly the zipper but this might break backwards compatibility
-// A possible implementation of a system that would not just be a lambda
-// would be:
-// registry.add_system<TypeA, TypeB, TypeC>([](Entity& e, TypeA& a, TypeB& b, TypeC& c) {} );
-// and in c++17 (or 20 idk anymore) template parameter is deduced so:
-// registry.add_system([](Entity& e, TypeA& a, TypeB& b, TypeC& c) {} );
-// would be enough
-/*
-    // You can also avoid to specify the Entity parameter
-    v.each([](const Velocity& velocity, const Some& some) {
-        std::cout << "Each: "
-                  << "Entity(Noid)" << some.a << std::endl;
-    });
-
-    v.eachEntity([](const silva::Entity& e, const Velocity& velocity, Some& some) {
-        std::cout << "Each With Entity: " << e << " " << some.a << std::endl;
-        some.a++;
-    });
-*/
-    // You can use ranged for loops
-    for (auto& [entity, velocity, some] : v) {
-        std::cout << "Ranged: " << e << " " << some.a << std::endl;
-        some.a++;
-    }
-
-    // And this for
-    for (auto& e : v) {
-        std::cout << "For: " << silva::get<Some>(e).a << std::endl;
-    }
+    r.update();
+    r.update();
+    r.update();
+    r.update(); // Call the update of the test System 4 times for proof of concept
 }
 ```
 

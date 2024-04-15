@@ -39,7 +39,7 @@ But what if I want to modify the value ?
 
 ```cpp
 // Note that the reference to the variable is always returned
-int& value = registry.get<int>(entity);
+int& value = registry.get_component<int>(entity);
 value = 6; // Modified the value in the registry
 ```
 
