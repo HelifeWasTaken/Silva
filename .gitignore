@@ -33,3 +33,7 @@
 
 # Tests files
 main.cpp
+main2.cpp
+# History files
+.history
+.vscode
