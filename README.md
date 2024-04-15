@@ -86,50 +86,8 @@ int main()
 #include "SilvaState.hpp"
 #include <iostream>
 
-silva::StateMachine *g_sm:
-
-class SampleState : public silva::State {
+class SampleState : public hl::silva::State {
 public:
-    void init() override
-    {
-        std::cout << "Enter" << std::endl;
-    }
-
-    void exit() override
-    {
-        std::cout << "Exit" << std::endl;
-    }
-
-    void update() override
-    {
-        std::cout << "Update" << std::endl;
-
-        if (someEvent) {
-            g_sm->changeState<OtherState>(); // placeholder state that can behave like this state
-        } else if (someOtherEvent) {
-            g_sm->stop(); // stop the state machine
-            return;
-        }
-        // If you called stop() accessing members of the state
-        // will result in undefined behavior (probably a crash)
-    }
-
-// In case the draw needs to be separated from the update
-#ifdef SILVA_DRAW
-    void draw() override
-    {
-        std::cout << "Draw" << std::endl;
-    }
-#endif
-
-// In case the event management needs to be separated from the update
-#ifdef SILVA_HANDLE_EVENT
-    void handleEvent() override
-    {
-        std::cout << "Handle Event" << std::endl;
-    }
-#endif
-
     SampleState()
     {
         std::cout << "Constructor" << std::endl;
@@ -139,23 +97,57 @@ public:
     {
         std::cout << "Destructor" << std::endl;
     }
+
+    void init() override
+    {
+        std::cout << "Enter" << std::endl;
+    }
+
+    void update() override
+    {
+        std::cout << "Update" << std::endl;
+
+        if (someEvent) {
+            state_manager().replace<OtherState>(); // placeholder state that can behave like this state
+        } else if (someOtherEvent) {
+            state_manager().stop(); // stop the state machine
+            return;
+        }
+        // If you called stop() accessing members of the state
+        // will result in undefined behavior (probably a crash)
+    }
+
+// In case the draw needs to be separated from the update
+#ifdef SILVA_STATE_RENDER
+    void render() override
+    {
+        std::cout << "Draw" << std::endl;
+    }
+#endif
+
+// In case the event management needs to be separated from the update
+#ifdef SILVA_STATE_EVENT
+    void event() override
+    {
+        std::cout << "Handle Event" << std::endl;
+    }
+#endif
 };
 
 int main()
 {
     // Create a state machine (Note that the state machine must always have a base state)
-    g_sm = new silva::StateMachine();
+    hl::silva::StateManager sm;
 
-    g_sm->changeState<SampleState>();
-    while (g_sm.update()) { // Update the state machine
-#ifdef SILVA_DRAW
-        g_sm.draw(); // Draw the state machine
+    sm.push<SampleState>();
+    while (sm.update()) { // Update the state machine
+#ifdef SILVA_STATE_RENDER
+        sm.draw(); // Draw the state machine
 #endif
-#ifdef SILVA_HANDLE_EVENT
-        g_sm.handleEvent(); // Handle the event
+#ifdef SILVA_STATE_EVENT
+        sm.handleEvent(); // Handle the event
 #endif
     }
-    delete g_sm;
     return 0;
 }
 ```
