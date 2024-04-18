@@ -39,8 +39,14 @@
 #include "sparse_array"
 
 // Enable debug mode by default so that the user can see the error messages
-#ifndef HL_SILVA_DEBUG
+#ifndef HL_SILVA_ENABLE_DEBUG
     #define HL_SILVA_DEBUG 1
+#elif HL_SILVA_ENABLE_DEBUG == 1
+    #define HL_SILVA_DEBUG 1
+#elif HL_SILVA_ENABLE_DEBUG == 0
+    #define HL_SILVA_DEBUG 0
+#else
+    #error "HL_SILVA_ENABLE_DEBUG is defined so must be either 0 or 1"
 #endif
 
 namespace hl

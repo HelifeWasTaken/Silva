@@ -483,7 +483,6 @@ static void random_entities_components_test_speed(const unsigned int entityCount
     double start = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     hl::silva::Registry r;
-    double elapsed;
     r.register_components<dummy0, dummy1, dummy2>();
     for (unsigned int i = 0; i < entityCount; i++) {
         hl::silva::Entity e = r.spawn_entity();
@@ -494,9 +493,11 @@ static void random_entities_components_test_speed(const unsigned int entityCount
             r.emplace<dummy1>(e, 2).emplace_r<dummy2>(3);
             r.kill_entity(hl::silva::Entity(std::rand() % r.entities_count()));
         }
-        elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch()).count() - start;
+        
+            
     }
+    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()).count() - start;
     if (elapsed > time_limit_ms) {
         GTEST_FATAL_FAILURE_((std::string("Time limit exceeded: ") + std::to_string(elapsed) + " < " + std::to_string(time_limit_ms)).c_str());
     }
