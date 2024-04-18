@@ -142,10 +142,10 @@ int main()
     sm.push<SampleState>();
     while (sm.update()) { // Update the state machine
 #ifdef SILVA_STATE_RENDER
-        sm.draw(); // Draw the state machine
+        sm.render(); // Draw the state machine
 #endif
 #ifdef SILVA_STATE_EVENT
-        sm.handleEvent(); // Handle the event
+        sm.event(); // Handle the event
 #endif
     }
     return 0;
