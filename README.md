@@ -83,7 +83,7 @@ int main()
 ## SilvaState:
 
 ```cpp
-#include "SilvaState.hpp"
+#include "SilvaState"
 #include <iostream>
 
 class SampleState : public hl::silva::State {
