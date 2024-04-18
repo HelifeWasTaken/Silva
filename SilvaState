@@ -212,7 +212,7 @@ public:
      */
     bool event()
     {
-        return _basic_update_coroutine(&AState::event);
+        return _basic_update_coroutine<&AState::event>();
     }
 #endif
 
@@ -223,7 +223,7 @@ public:
      */
     void render()
     {
-        return _basic_update_coroutine(&AState::render);
+        return _basic_update_coroutine<&AState::render>()
     }
 #endif
 
