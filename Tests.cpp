@@ -20,7 +20,6 @@ TEST(Entities, create_registry)
 {
     hl::silva::Registry r;
 }
-
 TEST(Entities, create_entity)
 {
     hl::silva::Registry r;
@@ -412,7 +411,7 @@ TEST(Views, each)
     EXPECT_EQ(i, entityCount);
 }
 
-TEST(Views, each2)
+TEST(Views, each)
 {
     hl::silva::Registry r;
     const unsigned int entityCount = 100;
@@ -424,7 +423,7 @@ TEST(Views, each2)
         r.emplace<dummy1>(e, 2);
     }
     hl::silva::Entity::Id i = 0;
-    r.view<dummy0, dummy1>().each2([&i](const hl::silva::Entity& e, const dummy0& d0, const dummy1& d1) {
+    r.view<dummy0, dummy1>().each<true>([&i](const hl::silva::Entity& e, const dummy0& d0, const dummy1& d1) {
         EXPECT_EQ(e.get_id(), i);
         EXPECT_EQ(d0.x, 1);
         EXPECT_EQ(d1.x, 2);
@@ -453,7 +452,7 @@ TEST(SampleCase, sample1_with_r)
         s.x += 2;
     });
 
-    v.each2([](const hl::silva::Entity& e, const dummy0& v, dummy1& s) {
+    v.each<true>([](const hl::silva::Entity& e, const dummy0& v, dummy1& s) {
         s.x++;
     });
 
