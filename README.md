@@ -41,12 +41,11 @@ int main()
     // Register components
     r.register_components<Velocity,Some,Other,Test>();
 
-    // Create entities and emplace components
-    r.emplace<Velocity>(r.spawn_entity(), 1, 2)
-        .emplace_r<Some>(0)
-        .emplace_r<Other>(1)
-        .emplace_r<Test>(1, 2, 3);
-    r.emplace<Velocity>(r.spawn_entity(), 1, 2).emplace_r<Some>(0);
+    r.spawn_entity().emplace<Velocity>(1, 2)
+        .emplace<Some>(0)
+        .emplace<Other>(1).emplace<Test>(1, 2, 3);
+
+    r.spawn_entity().emplace<Velocity>(1, 2).emplace<Some>(0);
 
 
     // zipper are slices equivalent, They can be used to gather some informations
@@ -61,6 +60,7 @@ int main()
         std::cout << "Ranged: " << entity << " " << some.a << std::endl;
         some.a += entity.get_id();
     }
+
     // if you did not use ranged for (auto [e, v, s] : v) but the normal for (auto var : v)
     // you will have to use var.get<T>() to get the component
 
@@ -71,6 +71,14 @@ int main()
                 std::cout << entity << " " << some.a << std::endl;
                 some.a++;
             }
+        });
+
+    r.add_csystem<Velocity>(
+        [](hl::silva::Registry& r, hl::silva::Entity& entity) {
+            Velocity& velocity = entity.get<Velocity>();
+            std::cout << entity.get_id() << " " << velocity.x << " " << velocity.y << std::endl;
+            velocity.x++;
+            velocity.y++;
         });
 
     r.update();
