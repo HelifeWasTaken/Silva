@@ -169,6 +169,7 @@ It can be used like so:
 registry.add_csystem<Gravity, RigidBody>([](hl::silva::registry& registry, hl::silva::Entity& entity) {
     entity.get<Gravity>().x /* for example and we are assured that the component exist */ ;
 });
+```
 
 # How to use Silva (StateMachine)
 
