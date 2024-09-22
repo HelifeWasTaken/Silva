@@ -78,7 +78,7 @@ namespace silva
 
     private:
         Registry &_registry;
-        const Id _id;
+        Id _id;
 
         /**
          * @brief Construct a new Entity object
@@ -89,6 +89,12 @@ namespace silva
         explicit Entity(Registry& registry, const Id &id) : _registry(registry), _id(id) {}
 
     public:
+        /**
+         * @brief Copies an entity
+         * @param entity: The other entity
+         * @retval Entity: The newly copied entity
+         */
+        Entity operator=(const hl::silva::Entity& entity);
 
         /**
          * @brief Construct a new Entity object from an existing id
@@ -663,6 +669,9 @@ namespace silva
         using each_t = std::function<void(Containers &...)>;
         using each2_t = std::function<void(Entity, Containers &...)>;
 
+        template<bool IncludeEntity>
+        using which_each = typename std::conditional<IncludeEntity, each2_t, each_t>::type&&;
+
         /**
          * @brief Apply a function to all the entities that the zipper::iterator considers valid
          *        Use each2 to also get the Entity object passed to the function
@@ -670,7 +679,7 @@ namespace silva
          * @retval Reference of the zipper
          */
         template<bool IncludeEntity = false>
-        void each(each_t&& f)
+        void each(which_each<IncludeEntity> f)
         {
             if constexpr (IncludeEntity)
             {
@@ -707,6 +716,16 @@ namespace silva
     };
 
     // Entity methods implementation
+
+    Entity Entity::operator=(const Entity& entity)
+    {
+        if (*this == entity) return *this;
+
+        _registry = entity._registry;
+        _id = entity._id;
+        return *this;
+    }
+
     void Entity::kill()
     {
         _registry.kill_entity(_id);
