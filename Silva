@@ -54,21 +54,41 @@ namespace hl
 {
 namespace silva
 {
+    /**
+     * @brief Alias for the pure type of a type
+     */
     template<typename T>
     using pure_type_t = std::remove_const_t<std::remove_reference_t<T>>;
 
+    /**
+     * @brief Error class
+     * @details Used to throw errors
+     */
     class Error : public std::exception
     {
     private:
         const std::string _msg;
 
     public:
+        /**
+         * @brief Construct a new Error object
+         * @param  msg: The message of the error
+         */
         Error(const std::string &msg) : _msg(msg) {}
 
+        /**
+         * @brief Get the message of the error
+         * @retval The message of the error
+         */
         inline const char *what() const noexcept override
         {
             return _msg.c_str();
         }
+
+        /**
+         * @brief Destroy the Error object
+         */
+        ~Error() = default;
     };
 
     /**
@@ -101,14 +121,31 @@ namespace silva
          * @brief Copies an entity
          * @param entity: The other entity
          */
-        Entity(const hl::silva::Entity& entity) = default;
+        Entity(const Entity& entity) = default;
 
         /**
          * @brief Copies an entity
          * @param entity: The other entity
          * @retval Entity: The newly copied entity
          */
-        Entity &operator=(const hl::silva::Entity& entity);
+        Entity &operator=(const Entity& entity) = default;
+
+        /**
+         * @brief Move an entity
+         * @param entity: The other entity
+         */
+        Entity(Entity&& entity)
+            : _registry(entity._registry), _id(entity._id)
+        {
+            entity._id = -1;
+        }
+
+        /**
+         * @brief Move an entity
+         * @param entity: The other entity
+         * @retval Entity: The newly moved entity
+         */
+        Entity &operator=(Entity&& entity);
 
         /**
          * @brief Construct a new Entity object from an existing id
@@ -295,6 +332,77 @@ namespace silva
 #endif
 
     public:
+        /**
+         * @brief Construct a new registry
+         */
+        Registry() = default;
+
+        /**
+         * @brief Destroy the registry
+         */
+        ~Registry() = default;
+
+        /**
+         * @brief Forbid a registry copy
+         * @param other: The other registry
+         */
+        Registry(const Registry&) = default;
+
+        /**
+         * @brief Forbid a registry assignment
+         * @param other: The other registry
+         * @retval Registry&
+         */
+        Registry& operator=(const Registry&) = default;
+
+        /**
+         * @brief Move a registry
+         * @param other: The other registry
+         */
+        Registry(Registry&& other)
+                : _last_component_index(other._last_component_index)
+                , _components_types_index(std::move(other._components_types_index))
+                , _components(std::move(other._components))
+                , _remove_system_methods(std::move(other._remove_system_methods))
+                , _entities_count(other._entities_count)
+                , _to_kill_entities(std::move(other._to_kill_entities))
+                , _killed_entities(std::move(other._killed_entities))
+                , _last_entity_id(other._last_entity_id)
+                , _systems(std::move(other._systems))
+        {
+            other._last_component_index = 0;
+            other._entities_count = 0;
+            other._last_entity_id = -1;
+        }
+
+        /**
+         * @brief Assign a moved registry
+         * @param other: The other registry
+         * @retval Registry&
+         */
+        Registry& operator=(Registry&& other)
+        {
+            _last_component_index = other._last_component_index;
+            other._last_component_index = 0;
+
+            _components_types_index = std::move(other._components_types_index);
+            _components = std::move(other._components);
+            _remove_system_methods = std::move(other._remove_system_methods);
+
+            _entities_count = other._entities_count;
+            other._entities_count = 0;
+
+            _to_kill_entities = std::move(other._to_kill_entities);
+            _killed_entities = std::move(other._killed_entities);
+
+            _last_entity_id = other._last_entity_id;
+            other._last_entity_id = -1;
+
+            _systems = std::move(other._systems);
+
+            return *this;
+        }
+
         /**
          * @brief  Checks if an entity is a valid one within the registry
          *         The entity is still considered valid until the next update
@@ -570,13 +678,17 @@ namespace silva
             return Zipper<Components...>(*this);
         }
 
+        inline std::string to_string() const
+        {
+            return "hl::silva::Registry(" + std::to_string(entities_count()) + " entities)";
+        }
+
         /**
          * @brief  Print the registry info
          */
         inline friend std::ostream &operator<<(std::ostream &os, const Registry &r)
         {
-            os << "hl::silva::Registry(" << r.entities_count() << " entities)";
-            return os;
+            return os << r.to_string();
         }
 
     private:
@@ -695,6 +807,35 @@ namespace silva
             }
 
             /**
+             * @brief Destructor of the iterator
+             */
+            ~iterator() = default;
+
+            /**
+             * @brief  Copy constructor of the iterator
+             * @param &it: The iterator to copy
+             */
+            iterator(const iterator &it) = default;
+
+            /**
+             * @brief  Copy assignment of the iterator
+             * @param &it: The iterator to copy
+             */
+            iterator &operator=(const iterator &it) = default;
+
+            // TODO: Maybe implement the move constructor and move assignment
+
+            /**
+             * @brief  Move constructor of the iterator (deleted)
+             */
+            iterator(iterator &&it) = delete;
+
+            /**
+             * @brief  Move assignment of the iterator (deleted)
+             */
+            iterator &operator=(iterator &&it) = delete;
+
+            /**
              * @brief Return the index of the iterator (i.e. the entity id)
              */
             inline std::size_t index() const
@@ -736,6 +877,35 @@ namespace silva
             , _registry(r)
         {
         }
+
+        /**
+         * @brief  Destroy the zipper
+         */
+        ~Zipper() = default;
+
+        /**
+         * @brief Copy constructor of the zipper
+         * @param z: The zipper to copy
+         */
+        Zipper(const Zipper &z) = default;
+
+        /**
+         * @brief Copy assignment of the zipper
+         * @param z: The zipper to copy
+         */
+        Zipper &operator=(const Zipper &z) = default;
+
+        // TODO: Maybe implement the move constructor and move assignment
+
+        /**
+         * @brief Move constructor of the zipper (deleted)
+         */
+        Zipper(Zipper &&z) = delete;
+
+        /**
+         * @brief Move assignment of the zipper (deleted)
+         */
+        Zipper &operator=(Zipper &&z) = delete;
 
         /**
          * @brief  Return the begin iterator
@@ -824,15 +994,11 @@ namespace silva
 
     // Entity methods implementation
 
-    Entity &Entity::operator=(const Entity& entity)
+    Entity &Entity::operator=(Entity&& entity)
     {
-        if (*this == entity)
-        {
-            return *this;
-        }
-
         _registry = entity._registry;
         _id = entity._id;
+        entity._id = -1;
         return *this;
     }
 
@@ -907,4 +1073,16 @@ namespace silva
 }
 }
 
+namespace std {
 
+    std::string to_string(const hl::silva::Entity &e)
+    {
+        return e.to_string();
+    }
+
+    std::string to_string(const hl::silva::Registry &r)
+    {
+        return r.to_string();
+    }
+
+}
