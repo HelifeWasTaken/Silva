@@ -1,5 +1,5 @@
 /**
- * Silva.hpp
+ * Silva
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -383,22 +383,18 @@ namespace silva
         Registry& operator=(Registry&& other)
         {
             _last_component_index = other._last_component_index;
-            other._last_component_index = 0;
-
             _components_types_index = std::move(other._components_types_index);
             _components = std::move(other._components);
             _remove_system_methods = std::move(other._remove_system_methods);
-
             _entities_count = other._entities_count;
-            other._entities_count = 0;
-
             _to_kill_entities = std::move(other._to_kill_entities);
             _killed_entities = std::move(other._killed_entities);
-
             _last_entity_id = other._last_entity_id;
-            other._last_entity_id = -1;
-
             _systems = std::move(other._systems);
+
+            other._last_component_index = 0;
+            other._entities_count = 0;
+            other._last_entity_id = -1;
 
             return *this;
         }
@@ -536,7 +532,8 @@ namespace silva
          */
         void add_system(const std::string& name, const system_t &sys)
         {
-            if (_systems.find(name) != _systems.end()) {
+            if (_systems.find(name) != _systems.end())
+            {
                 throw SilvaError("A system '" + name + " has already been registered");
             }
             _systems.emplace(name, sys);
@@ -548,7 +545,8 @@ namespace silva
          */
         void add_system(const std::string& name, system_t &&sys)
         {
-            if (_systems.find(name) != _systems.end()) {
+            if (_systems.find(name) != _systems.end())
+            {
                 throw SilvaError("A system '" + name + " has already been registered");
             }
             _systems.emplace(name, sys);
@@ -564,7 +562,9 @@ namespace silva
         {
             add_system(name, [sys](Registry &r) {
                 for (auto it : r.zip<Components...>())
+                {
                     sys(r, std::get<Entity>(it));
+                }
             });
         }
 
@@ -591,7 +591,9 @@ namespace silva
                 for (const auto &e : _to_kill_entities)
                 {
                     for (const auto &f : _remove_system_methods)
+                    {
                         f(e);
+                    }
                     _killed_entities.insert(e);
                 }
                 _to_kill_entities.clear();
