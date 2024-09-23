@@ -1,7 +1,5 @@
 # How to use Silva (ECS)
 
-# THIS TUTORIAL IS OUTDATED AND ONLY WORK ON OLD COMMMITS PLEASE REVERT IF YOU WANT TO USE THIS (THE TUTORIAL WILL SOON UPDATED AGAIN TO BE USED ON THE CURRENT MAIN) README.md IS UPDATED WITH ALL CURRENT CHANGES!
-
 ## The registry
 
 The registry is a central place to store all the information about the
@@ -12,7 +10,7 @@ It is named `silva::registry`.
 ### Create your first Entity:
 
 ```cpp
-hl::silva::registry registry;
+hl::silva::Registry registry;
 hl::silva::Entity entity = registry.spawn_entity();
 ```
 
@@ -25,16 +23,20 @@ A component is a piece of data that is attached to an entity.
 Here is how to attach a component:
 
 ```cpp
-hl::silva::registry registry;
-registry.register_component<int>();
+hl::silva::Registry registry;
+registry.register_components<int>();
 hl::silva::Entity entity = registry.spawn_entity();
-registry.emplace<int>(entity, 42);
+registry.emplace_component<int>(entity, 42);
+// or
+entity.emplace<int>(42);
 ```
 
 And here is how to get it
 
 ```cpp
-int value = registry.get<int>(entity);
+int value = registry.get_component<int>(entity);
+// or
+int value = entity.get<int>();
 ```
 
 But what if I want to modify the value ?
@@ -42,61 +44,10 @@ But what if I want to modify the value ?
 ```cpp
 // Note that the reference to the variable is always returned
 int& value = registry.get_component<int>(entity);
+// or
+int& value = entity.get<int>();
+
 value = 6; // Modified the value in the registry
-```
-
-## The coroutines (a.k.a Systems)
-
-A system is a function that is called every 1 / 60 seconds.
-
-And applicates it on every entity that matches his requirements.
-
-```cpp
-struct Gravity {
-    float x, y, z;
-};
-
-struct RigidBody {
-    float mass;
-    float velocity;
-    float acceleration;
-};
-
-struct Position {
-    int x, y, z;
-};
-
-```cpp
-int main()
-{
-    silva::registry registry;
-
-    registry.register_component<Position, RigidBody, Gravity>();
-
-    for (int i = 0; i < 100; i++) {
-        registry.emplace<Position>(registry.spawn_entity(),rand(), rand(), rand())
-            .emplace_r<RigidBody>(5, 0, 0) // Emplace r uses the last used Entity
-            .emplace_r<Gravity>(0, -9.8, 0);
-    }
-
-    // Only take the entities that have a RigidBody a Position and a Gravity component
-    registry.add_system([](hl::silva::registry& registry)
-        {
-            for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
-                // This is not an accurate Earth system force application
-                // It is just here for the example
-                position.y += rigidBody.velocity;
-                rigidBody.velocity += rigidBody.acceleration;
-                position.x += gravity.x;
-                position.y += gravity.y;
-                position.z += gravity.z;
-            }
-        }
-    );
-
-    registry.update(); // Call the update of every registered Systems
-    return 0;
-}
 ```
 
 ## The for ranged loops:
@@ -106,12 +57,12 @@ For this example I will use the `silva::View` class to iterate over the entities
 ```cpp
 int main()
 {
-    hl::silva::registry registry;
+    hl::silva::Registry registry;
 
     registry.register_component<int>();
 
     for (int i = 0; i < 100; i++) {
-        registry.emplace<int>(registry.spawn_entity(), 0);
+        registry.emplace_component<int>(registry.spawn_entity(), 0); // Entity is Implicitly casted to the Id
     }
 
     // Get the view of the registry
@@ -132,7 +83,7 @@ int main()
 ```cpp
 int main()
 {
-    hl::silva::registry registry;
+    hl::silva::Registry registry;
 
     registry.register_component<int, float>();
 
@@ -153,6 +104,66 @@ int main()
         }
     }
 }
+```
+
+## The coroutines (a.k.a Systems)
+
+A system is a function that is called every update call
+
+```cpp
+struct Vec3 { float x, y, z; }
+Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}; }
+
+struct Gravity : public Vec3 {};
+struct Position : public Vec3 {};
+
+struct RigidBody {
+    float mass, velocity, accecleration;
+};
+
+int main()
+{
+    hl::silva::Registry registry;
+
+    registry.register_components<Position, RigidBody, Gravity>();
+
+    for (int i = 0; i < 100; i++) {
+        hl::silva::Entity e = registry.spawn_entity();
+        e.emplace<Position>(rand(), rand(), rand())
+            .emplace<RigidBody>(5, 0, 0) // You can chain emplaces when using the entity!
+            .emplace<Gravity>(0, -9.8, 0);
+    }
+
+    // Only take the entities that have a RigidBody a Position and a Gravity component
+    registry.add_system(
+        "Gravity",
+        [](hl::silva::Registry& registry)
+        {
+            for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
+                // This is not an accurate Earth system force application
+                // It is just here for the example as pseudo code
+                position.y += rigidBody.velocity;
+                rigidBody.velocity += rigidBody.acceleration;
+                position = gravity + position;
+            }
+        }
+    );
+
+    registry.update(); // Call the update of every registered Systems
+    return 0;
+}
+```
+
+You can also constrain a system to specific requirements using `add_csystem` (a.k.a `constrained_system`)
+It can be used like so:
+```cpp
+// Each call will be a currently valid Entity of the constrains given
+// Removing a component that is used by the constraint to the registry may break the process
+// Here each time the function is called we are ensured that the entity has a Gravity and RigidBody
+// We pass down the registry but should not be required with the function provided inside the Entity class
+registry.add_csystem<Gravity, RigidBody>([](hl::silva::Registry& registry, hl::silva::Entity& entity) {
+    entity.get<Gravity>().x /* for example and we are assured that the component exist */ ;
+});
 ```
 
 # How to use Silva (StateMachine)
@@ -219,7 +230,10 @@ class GameState : public State {
         std::cout << "Playing" << std::endl;
 
         if (KeyboardPressed(KEY_ESCAPE)) {
-            stateMachine.pushState<PauseState>();
+            state_manager().push<PauseState>(); // is directly push
+            // may return afterwards if necessary in case you do not want to continue directly after
+            // a push
+            // return;
         }
 
         player.update();
@@ -233,7 +247,8 @@ class PauseState : public State {
         std::cout << "Paused" << std::endl;
 
         if (KeyboardPressed(KEY_ESCAPE)) {
-            stateMachine.popState();
+            state_manager.pop(); // Will be actually popped after the function end
+            return; // to avoid updating further and having race conditions with your own program
         }
 
         buttons.update();
@@ -254,13 +269,14 @@ private:
 public:
     RunBehaviour(Player& animable) : player(player)
     {
+	    player.animable.loadAnimation("Run");// or whatever how it should work
     }
 
     void update() override {
         // Specific update code
 
-        if (player.notMoving()) {
-            player.changeState<IdleBehaviour>(player);
+        if (!player.isMoving()) {
+            player.changeState<IdleBehaviour>();
             return;
         }
     }
@@ -273,12 +289,13 @@ private:
 public:
     IdleBehaviour(Player& player) : player(player)
     {
+	    player.animable.loadAnimation("Idle"); // or whatever how it should work
     }
 
     void update() override {
         // Specific update code
         if (player.isMoving()) {
-            player.changeState<RunBehaviour>(player);
+            player.changeState<RunBehaviour>();
             return;
         }
     }
@@ -291,34 +308,39 @@ private:
 public:
     ActionBehaviour(Player& player) : player(player)
     {
+	    player.animable.loadAnimation("Action");// or whatever how it should work
+    }
+
+    void finishedAction() {
+	bool hasFinished = false;
+	// *code* 
+        // or maybe inside the player class implement the logic of this
+	return hasFinished;
     }
 
     void update() override {
         // Specific update code
 
-        if (player.finishedAction()) {
-            player.changeState<IdleBehaviour>(player);
+        if (finishedAction()) {
+            player.changeState<IdleBehaviour>();
             return;
         }
     }
 };
 
-class Player {
-private:
+struct Player {
+    Vector2 velocity;
     Animable animable;
     StateMachine stateMachine;
-    Vector2 velocity;
 
-public:
-    Player() { stateMachine.changeState<IdleBehaviour>(player); }
+    Player() { changeState<IdleBehaviour>(); }
 
-    void update() { stateMachine.update(); }
+    void update() { animable.update(); stateMachine.update(); }
 
-    bool isMoving() const { return velocity.x != 0 || velocity.y != 0; }
+    bool isMoving() const { return velocity.x || velocity.y ; }
 
-    bool notMoving() const { return !isMoving(); }
-
+    // simple alias instead of player.stateMachine.replace<T>(player);
     template<typename T>
-    void changeState(Player& player) { stateMachine.changeState<T>(player); }
+    void changeState() { stateMachine.replace<T>(*this); }
 };
 ```

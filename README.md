@@ -8,75 +8,47 @@ Starting to become a collection of useful game development tools..
 
 ```cpp
 #include "Silva"
-#include <iostream>
 
-struct Velocity {
-    int x, y;
-};
+struct Vec3 { float x, y, z; }
+Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}; }
 
-struct Some {
-    int a;
-};
+struct Gravity : public Vec3 {};
+struct Position : public Vec3 {};
 
-struct Other {
-    int b;
-};
-
-class Test {
-public:
-    int a, b, c;
-
-    Test(int a, int b, int c)
-        : a(a)
-        , b(b)
-        , c(c)
-    {
-    }
+struct RigidBody {
+    float mass, velocity, accecleration;
 };
 
 int main()
 {
-    hl::silva::Registry r;
+    hl::silva::Registry registry;
 
-    // Register components
-    r.register_components<Velocity,Some,Other,Test>();
+    registry.register_components<Position, RigidBody, Gravity>();
 
-    // Create entities and emplace components
-    r.emplace<Velocity>(r.spawn_entity(), 1, 2)
-        .emplace_r<Some>(0)
-        .emplace_r<Other>(1)
-        .emplace_r<Test>(1, 2, 3);
-    r.emplace<Velocity>(r.spawn_entity(), 1, 2).emplace_r<Some>(0);
-
-
-    // zipper are slices equivalent, They can be used to gather some informations
-    // But avoid removing entities from the registry, while using them because it will invalidate the view
-    // Also do not remove a used component in the view while using the zipper
-    // You can use ranged for loops
-    // (It returns references by default by using auto)
-    // (You cannot use auto& because the tuple is a temporary object)
-    // You may use auto&& but should not be necessary and adds complexity
-    hl::silva::Zipper<Velocity, Some> v(r);
-    for (auto [entity, velocity, some] : v) {
-        std::cout << "Ranged: " << entity << " " << some.a << std::endl;
-        some.a += entity.get_id();
+    for (int i = 0; i < 100; i++) {
+        hl::silva::Entity e = registry.spawn_entity();
+        e.emplace<Position>(rand(), rand(), rand())
+            .emplace<RigidBody>(5, 0, 0) // You can chain emplaces when using the entity!
+            .emplace<Gravity>(0, -9.8, 0);
     }
-    // if you did not use ranged for (auto [e, v, s] : v) but the normal for (auto var : v)
-    // you will have to use var.get<T>() to get the component
 
-    // Add a system and the conresponding update function
-    r.add_system(
-        [](hl::silva::Registry& registry) {
-            for (auto [entity, some] : registry.view<Some>()) {
-                std::cout << entity << " " << some.a << std::endl;
-                some.a++;
+    // Only take the entities that have a RigidBody a Position and a Gravity component
+    registry.add_system(
+        "Gravity",
+        [](hl::silva::Registry& registry)
+        {
+            for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
+                // This is not an accurate Earth system force application
+                // It is just here for the example as pseudo code
+                position.y += rigidBody.velocity;
+                rigidBody.velocity += rigidBody.acceleration;
+                position = gravity + position;
             }
-        });
+        }
+    );
 
-    r.update();
-    r.update();
-    r.update();
-    r.update(); // Call the update of the test System 4 times for proof of concept
+    registry.update(); // Call the update of every registered Systems
+    return 0;
 }
 ```
 
