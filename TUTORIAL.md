@@ -111,21 +111,16 @@ int main()
 A system is a function that is called every update call
 
 ```cpp
-struct Gravity {
-    float x, y, z;
-};
+struct Vec3 { float x, y, z; }
+Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}; }
+
+struct Gravity : public Vec3 {};
+struct Position : public Vec3 {};
 
 struct RigidBody {
-    float mass;
-    float velocity;
-    float acceleration;
+    float mass, velocity, accecleration;
 };
 
-struct Position {
-    int x, y, z;
-};
-
-```cpp
 int main()
 {
     hl::silva::registry registry;
@@ -140,16 +135,16 @@ int main()
     }
 
     // Only take the entities that have a RigidBody a Position and a Gravity component
-    registry.add_system([](hl::silva::registry& registry)
+    registry.add_system(
+        "Gravity",
+        [](hl::silva::registry& registry)
         {
             for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
                 // This is not an accurate Earth system force application
-                // It is just here for the example
+                // It is just here for the example as pseudo code
                 position.y += rigidBody.velocity;
                 rigidBody.velocity += rigidBody.acceleration;
-                position.x += gravity.x;
-                position.y += gravity.y;
-                position.z += gravity.z;
+                position = gravity + position;
             }
         }
     );
