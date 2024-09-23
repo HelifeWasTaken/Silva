@@ -49,7 +49,7 @@ namespace silva {
          */
         sparse_array(const size_type& default_size=20)
         {
-            static_assert(default_size > 0);
+            // assert(default_size > 0);
             _data.assign(default_size, std::nullopt);
         }
 

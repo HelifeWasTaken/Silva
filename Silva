@@ -306,7 +306,7 @@ namespace silva
         {
             if (_last_entity_id >= from) // Is in the range of the alive entities
             {
-                return _killed_entities.find(from) != _killed_entities.end() // Has it been killed ?
+                return _killed_entities.find(from) != _killed_entities.end(); // Has it been killed ?
             }
             return false;
         }
@@ -503,7 +503,6 @@ namespace silva
             return _entities_count - (_killed_entities.size() + _to_kill_entities.size());
         }
         
-    // TODO: Add a const method
         /**
          * @brief Get the component of an entity
          * @param e: The entity
@@ -523,6 +522,29 @@ namespace silva
         }
 #else
         inline Component &get_component(const Entity::Id &id)
+        {
+            return get_components<Component>()[id].value();
+        }
+#endif
+        /**
+         * @brief Get the component of an entity (const)
+         * @param e: The entity
+         * @tparam Component: The component
+         * @retval Component&
+         */
+        template<typename Component>
+#if HL_SILVA_DEBUG
+        const Component &get_component(const Entity::Id &id) const
+        {
+            const auto& ref = get_components<Component>()[id];
+            if (ref.has_value() == false)
+            {
+                throw Error("Entity " + std::to_string(id) + " does not have the component " + std::string(typeid(Component).name()));
+            }
+            return ref.value();
+        }
+#else
+        inline const Component &get_component(const Entity::Id &id) const
         {
             return get_components<Component>()[id].value();
         }
