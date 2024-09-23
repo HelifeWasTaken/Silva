@@ -10,7 +10,7 @@ It is named `silva::registry`.
 ### Create your first Entity:
 
 ```cpp
-hl::silva::registry registry;
+hl::silva::Registry registry;
 hl::silva::Entity entity = registry.spawn_entity();
 ```
 
@@ -23,7 +23,7 @@ A component is a piece of data that is attached to an entity.
 Here is how to attach a component:
 
 ```cpp
-hl::silva::registry registry;
+hl::silva::Registry registry;
 registry.register_components<int>();
 hl::silva::Entity entity = registry.spawn_entity();
 registry.emplace_component<int>(entity, 42);
@@ -57,7 +57,7 @@ For this example I will use the `silva::View` class to iterate over the entities
 ```cpp
 int main()
 {
-    hl::silva::registry registry;
+    hl::silva::Registry registry;
 
     registry.register_component<int>();
 
@@ -83,7 +83,7 @@ int main()
 ```cpp
 int main()
 {
-    hl::silva::registry registry;
+    hl::silva::Registry registry;
 
     registry.register_component<int, float>();
 
@@ -123,7 +123,7 @@ struct RigidBody {
 
 int main()
 {
-    hl::silva::registry registry;
+    hl::silva::Registry registry;
 
     registry.register_components<Position, RigidBody, Gravity>();
 
@@ -137,7 +137,7 @@ int main()
     // Only take the entities that have a RigidBody a Position and a Gravity component
     registry.add_system(
         "Gravity",
-        [](hl::silva::registry& registry)
+        [](hl::silva::Registry& registry)
         {
             for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
                 // This is not an accurate Earth system force application
@@ -161,7 +161,7 @@ It can be used like so:
 // Removing a component that is used by the constraint to the registry may break the process
 // Here each time the function is called we are ensured that the entity has a Gravity and RigidBody
 // We pass down the registry but should not be required with the function provided inside the Entity class
-registry.add_csystem<Gravity, RigidBody>([](hl::silva::registry& registry, hl::silva::Entity& entity) {
+registry.add_csystem<Gravity, RigidBody>([](hl::silva::Registry& registry, hl::silva::Entity& entity) {
     entity.get<Gravity>().x /* for example and we are assured that the component exist */ ;
 });
 ```

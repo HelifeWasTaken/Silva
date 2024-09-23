@@ -21,7 +21,7 @@ struct RigidBody {
 
 int main()
 {
-    hl::silva::registry registry;
+    hl::silva::Registry registry;
 
     registry.register_components<Position, RigidBody, Gravity>();
 
@@ -35,7 +35,7 @@ int main()
     // Only take the entities that have a RigidBody a Position and a Gravity component
     registry.add_system(
         "Gravity",
-        [](hl::silva::registry& registry)
+        [](hl::silva::Registry& registry)
         {
             for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
                 // This is not an accurate Earth system force application
