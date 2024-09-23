@@ -105,7 +105,7 @@ TEST(Components, test_get_component_from_entity_after_removal)
     e.remove<dummy1>();
     try {
         auto& c = e.get<dummy1>();
-    } catch (const hl::silva::Error& e) {
+    } catch (const hl::silva::SilvaError& e) {
         return;
     }
     GTEST_FAIL();
@@ -122,13 +122,13 @@ TEST(Components, test_get_component_from_entity_after_removal_2)
 
     try {
         auto& c = e.get<dummy1>();
-    } catch (const hl::silva::Error& e) {
+    } catch (const hl::silva::SilvaError& e) {
         GTEST_FAIL();
     }
     r.update();
     try {
         auto& c = e.get<dummy1>();
-    } catch (const hl::silva::Error& e) {
+    } catch (const hl::silva::SilvaError& e) {
         return;
     }
     GTEST_FAIL();
@@ -145,13 +145,13 @@ TEST(Components, test_get_component_from_entity_after_removal_3)
 
     try {
         auto& c = e.get<dummy1>();
-    } catch (const hl::silva::Error& e) {
+    } catch (const hl::silva::SilvaError& e) {
         GTEST_FAIL();
     }
     r.spawn_entity();
     try {
         auto& c = e.get<dummy1>();
-    } catch (const hl::silva::Error& e) {
+    } catch (const hl::silva::SilvaError& e) {
         GTEST_FAIL();
     }
 
@@ -159,7 +159,7 @@ TEST(Components, test_get_component_from_entity_after_removal_3)
 
     try {
         auto& c = e.get<dummy1>();
-    } catch (const hl::silva::Error& e) {
+    } catch (const hl::silva::SilvaError& e) {
         return;
     }
     GTEST_FAIL();
@@ -474,7 +474,7 @@ TEST(SampleCase, sample1_with_r)
 
     try {
         EXPECT_EQ(e2.get<dummy0>().x, 1);
-    } catch (const hl::silva::Error& e) {
+    } catch (const hl::silva::SilvaError& e) {
     }
 
     EXPECT_EQ(e2.get<dummy1>().x, 2);

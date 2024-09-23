@@ -64,7 +64,7 @@ namespace silva
      * @brief Error class
      * @details Used to throw errors
      */
-    class Error : public std::exception
+    class SilvaError : public std::exception
     {
     private:
         const std::string _msg;
@@ -74,7 +74,7 @@ namespace silva
          * @brief Construct a new Error object
          * @param  msg: The message of the error
          */
-        Error(const std::string &msg) : _msg(msg) {}
+        SilvaError(const std::string &msg) : _msg(msg) {}
 
         /**
          * @brief Get the message of the error
@@ -88,7 +88,7 @@ namespace silva
         /**
          * @brief Destroy the Error object
          */
-        ~Error() = default;
+        ~SilvaError() = default;
     };
 
     /**
@@ -320,7 +320,7 @@ namespace silva
             auto it = _components_types_index.find(std::type_index(typeid(Component)));
             if (it == _components_types_index.end())
             {
-                throw Error("Component " + std::string(typeid(Component).name()) + " is not registered");
+                throw SilvaError("Component " + std::string(typeid(Component).name()) + " is not registered");
             }
             return it->second;
         }
@@ -464,7 +464,7 @@ namespace silva
         {
             if (_components_types_index.find(std::type_index(typeid(Component))) != _components_types_index.end())
             {
-                throw Error("Cannot register twice a component. '" + std::string(typeid(Component).name()) + "' is already registered");
+                throw SilvaError("Cannot register twice a component. '" + std::string(typeid(Component).name()) + "' is already registered");
             }
 
             _components_types_index[std::type_index(typeid(Component))] = _last_component_index++,
@@ -537,7 +537,7 @@ namespace silva
         void add_system(const std::string& name, const system_t &sys)
         {
             if (_systems.find(name) != _systems.end()) {
-                throw Error("A system '" + name + " has already been registered");
+                throw SilvaError("A system '" + name + " has already been registered");
             }
             _systems.emplace(name, sys);
         }
@@ -549,7 +549,7 @@ namespace silva
         void add_system(const std::string& name, system_t &&sys)
         {
             if (_systems.find(name) != _systems.end()) {
-                throw Error("A system '" + name + " has already been registered");
+                throw SilvaError("A system '" + name + " has already been registered");
             }
             _systems.emplace(name, sys);
         }
@@ -574,7 +574,7 @@ namespace silva
 
             if (it == _systems.end())
             {
-                throw Error("Cannot remove system '" + name + " because it is not registered");
+                throw SilvaError("Cannot remove system '" + name + " because it is not registered");
             }
             _systems.erase(it);
         }
@@ -624,7 +624,7 @@ namespace silva
             auto& ref = get_components<Component>()[id];
             if (ref.has_value() == false)
             {
-                throw Error("Entity " + std::to_string(id) + " does not have the component " + std::string(typeid(Component).name()));
+                throw SilvaError("Entity " + std::to_string(id) + " does not have the component " + std::string(typeid(Component).name()));
             }
             return ref.value();
         }
@@ -647,7 +647,7 @@ namespace silva
             const auto& ref = get_components<Component>()[id];
             if (ref.has_value() == false)
             {
-                throw Error("Entity " + std::to_string(id) + " does not have the component " + std::string(typeid(Component).name()));
+                throw SilvaError("Entity " + std::to_string(id) + " does not have the component " + std::string(typeid(Component).name()));
             }
             return ref.value();
         }
