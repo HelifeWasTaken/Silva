@@ -64,6 +64,17 @@ TEST(Entities, test_kill_entity)
     EXPECT_EQ(e.get_id(), 0);
 }
 
+TEST(Entities, is_entity_valid)
+{
+    hl::silva::Registry r;
+    hl::silva::Entity e = r.spawn_entity();
+    EXPECT_EQ(e.is_valid(), true);
+    e.kill();
+    EXPECT_EQ(e.is_valid(), true);
+    r.update();
+    EXPECT_EQ(e.is_valid(), false);
+}
+
 TEST(Components, test_emplace_component_to_entity)
 {
     hl::silva::Registry r;
@@ -612,32 +623,91 @@ public:
         inline static bool s_f_updated = false;
         inline static bool s_f_init = false;
 
-        void init() override {
+        void init() override final {
                 PublicFlipState::s_f_init = !PublicFlipState::s_f_init;
         }
 
-        void update() override {
+        void update() override final {
                 PublicFlipState::s_f_updated = !PublicFlipState::s_f_updated;
+        }
+
+        ~PublicFlipState() override final {
+            PublicFlipState::s_f_init = false;
         }
 };
 
-TEST(StateMachine, test_update)
-{
-        hl::silva::StateManager manager;
-        manager.push<PublicFlipState>();
+class PublicFlipState2 : public hl::silva::State {
+public:
+        inline static bool s_f_updated = false;
+        inline static bool s_f_init = false;
 
-        EXPECT_EQ(PublicFlipState::s_f_init, false);
-        EXPECT_EQ(PublicFlipState::s_f_updated, false);
-        manager.update();
-        EXPECT_EQ(PublicFlipState::s_f_init, true);
-        EXPECT_EQ(PublicFlipState::s_f_updated, true);
-        manager.update();
-        EXPECT_EQ(PublicFlipState::s_f_init, true);
-        EXPECT_EQ(PublicFlipState::s_f_updated, false);
+        void init() override final {
+                PublicFlipState2::s_f_init = !PublicFlipState2::s_f_init;
+        }
+
+        void update() override final {
+                PublicFlipState2::s_f_updated = !PublicFlipState2::s_f_updated;
+        }
+
+        ~PublicFlipState2() override final {
+            PublicFlipState2::s_f_init = false;
+        }
+};
+
+void reset_flip_states()
+{
+    PublicFlipState::s_f_updated = false;
+    PublicFlipState::s_f_init = false;
+    PublicFlipState2::s_f_updated = false;
+    PublicFlipState2::s_f_init = false;
 }
 
-// TODO: Test State push pop stop
-// TODO: Test is_entity_valid
+TEST(StateMachine, test_update)
+{
+    reset_flip_states();
+
+    hl::silva::StateManager manager;
+    manager.push<PublicFlipState>();
+
+    EXPECT_EQ(PublicFlipState::s_f_init, false);
+    EXPECT_EQ(PublicFlipState::s_f_updated, false);
+    manager.update();
+    EXPECT_EQ(PublicFlipState::s_f_init, true);
+    EXPECT_EQ(PublicFlipState::s_f_updated, true);
+    manager.update();
+    EXPECT_EQ(PublicFlipState::s_f_init, true);
+    EXPECT_EQ(PublicFlipState::s_f_updated, false);
+}
+
+TEST(StateMachine, test_push_pop)
+{
+    reset_flip_states();
+
+    hl::silva::StateManager manager;
+    manager.push<PublicFlipState>();
+    manager.push<PublicFlipState2>();
+
+    // None are initialized nor updated
+    EXPECT_EQ(PublicFlipState::s_f_init, false);
+    EXPECT_EQ(PublicFlipState::s_f_updated, false);
+    EXPECT_EQ(PublicFlipState2::s_f_init, false);
+    EXPECT_EQ(PublicFlipState2::s_f_updated, false);
+
+    manager.update();
+    // Both are initialized, only the second is updated
+    EXPECT_EQ(PublicFlipState::s_f_init, true);
+    EXPECT_EQ(PublicFlipState::s_f_updated, false);
+    EXPECT_EQ(PublicFlipState2::s_f_init, true);
+    EXPECT_EQ(PublicFlipState2::s_f_updated, true);
+    manager.pop();
+
+    manager.update();
+    // Only the first is updated
+    EXPECT_EQ(PublicFlipState::s_f_init, true);
+    EXPECT_EQ(PublicFlipState::s_f_updated, true);
+    EXPECT_EQ(PublicFlipState2::s_f_init, false);
+    EXPECT_EQ(PublicFlipState2::s_f_updated, true);
+}
 
 int main(int argc, char** argv)
 {

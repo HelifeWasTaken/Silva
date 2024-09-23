@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <stack>
+#include <queue>
 
 namespace hl
 {
@@ -156,7 +157,7 @@ class StateManager
 {
 private:
     std::stack<std::unique_ptr<AState>> m_states;
-    std::unique_ptr<AState> m_pending_state;
+    std::queue<std::unique_ptr<AState>> m_pending_states;
     std::size_t m_pop_count = 0;
 
     void _pop_states_internal()
@@ -172,9 +173,11 @@ private:
     {
         _pop_states_internal();
         if constexpr(func == &IState::update) {
-            if (m_pending_state) {
-                m_pending_state->init();
-                m_states.push(std::move(m_pending_state));
+            while (m_pending_states.empty() == false) {
+                auto state = std::move(m_pending_states.front());
+                state->init();
+                m_states.push(std::move(state));
+                m_pending_states.pop();
             }
         }
 
@@ -208,9 +211,8 @@ public:
     void push(Args&&... args)
     {
         auto state = std::make_unique<T>(std::forward<Args>(args)...);
-        AState &state_ref = *state;
-        state_ref.set_state_manager(this);
-        m_pending_state = std::move(state);
+        ((AState *)state.get())->set_state_manager(this);
+        m_pending_states.push(std::move(state));
     }
 
     /**
@@ -243,7 +245,9 @@ public:
     void stop(bool remove_pending = false)
     {
         if (remove_pending) {
-            m_pending_state.reset();
+            while (m_pending_states.empty() == false) {
+                m_pending_states.pop();
+            }
         }
         m_pop_count = m_states.size();
     }

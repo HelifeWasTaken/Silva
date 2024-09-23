@@ -414,7 +414,7 @@ namespace silva
         {
             if (_last_entity_id >= from) // Is in the range of the alive entities
             {
-                return _killed_entities.find(from) != _killed_entities.end(); // Has it been killed ?
+                return _killed_entities.find(from) == _killed_entities.end(); // Has it been killed ?
             }
             return false;
         }
