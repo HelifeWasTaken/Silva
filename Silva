@@ -28,6 +28,7 @@
 #include <typeinfo>
 #include <optional>
 #include <typeindex>
+#include <map>
 #include <unordered_map>
 #include <unordered_set>
 #include <cstddef>
@@ -53,6 +54,9 @@ namespace hl
 {
 namespace silva
 {
+    template<typename T>
+    using pure_type_t = std::remove_const_t<std::remove_reference_t<T>>;
+
     class Error : public std::exception
     {
     private:
@@ -60,7 +64,11 @@ namespace silva
 
     public:
         Error(const std::string &msg) : _msg(msg) {}
-        const char *what() const noexcept override { return _msg.c_str(); }
+
+        inline const char *what() const noexcept override
+        {
+            return _msg.c_str();
+        }
     };
 
     /**
@@ -92,9 +100,15 @@ namespace silva
         /**
          * @brief Copies an entity
          * @param entity: The other entity
+         */
+        Entity(const hl::silva::Entity& entity) = default;
+
+        /**
+         * @brief Copies an entity
+         * @param entity: The other entity
          * @retval Entity: The newly copied entity
          */
-        Entity operator=(const hl::silva::Entity& entity);
+        Entity &operator=(const hl::silva::Entity& entity);
 
         /**
          * @brief Construct a new Entity object from an existing id
@@ -102,7 +116,7 @@ namespace silva
          * @param  id: The id of the entity
          * @retval None
          */
-        static Entity from_id(Registry& registry, const Id &id)
+        static inline Entity from_id(Registry& registry, const Id &id)
         {
             return Entity(registry, id);
         }
@@ -116,13 +130,10 @@ namespace silva
          * @brief Get the Id of the entity
          * @retval The id of the entity
          */
-        inline operator Id() const { return _id; }
-
-        /**
-         * @brief Get the Id of the entity
-         * @retval The id of the entity
-         */
-        inline const Id &get_id() const { return _id; }
+        inline const Id &get_id() const
+        {
+            return _id;
+        }
 
         /**
          * @brief To string method
@@ -165,14 +176,14 @@ namespace silva
         /**
          * @brief Kill the entity (implmentation at the end of the file)
          */
-        void kill();
+        inline void kill();
 
         /**
          * @brief Insert a component to the entity (implementation at the end of the file)
          * @tparam Component: The component
          */
         template<typename Component>
-        Entity& insert(Component &&c);
+        inline Entity& insert(Component &&c);
 
         /**
          * @brief Emplace a component to the entity (implementation at the end of the file)
@@ -180,13 +191,13 @@ namespace silva
          * @tparam ...Params: The parameters
          */
         template<typename Component, typename... Params>
-        Entity& emplace(Params&&... p);
+        inline Entity& emplace(Params&&... p);
 
         /**
          * @brief Remove a component from the entity (implementation at the end of the file)
          */
         template<typename Component>
-        Entity& remove();
+        inline Entity& remove();
 
         /**
          * @brief Get the component of the entity (implementation at the end of the file)
@@ -194,7 +205,7 @@ namespace silva
          * @retval Component&
          */
         template<typename Component>
-        Component& get();
+        inline Component& get();
 
         /**
          * @brief Get the component of the entity (implementation at the end of the file)
@@ -202,13 +213,13 @@ namespace silva
          * @retval const Component&
          */
         template<typename Component>
-        const Component& get() const;
+        inline const Component& get() const;
 
         /**
          * @brief Is the entity valid (implementation at the end of the file)
          * @retval True if the entity is valid
          */
-        bool is_valid() const;
+        inline bool is_valid() const;
     };
 
     /**
@@ -241,12 +252,12 @@ namespace silva
         using component_sparse_array_t = hl::silva::sparse_array<Component>;
         using components_dynamic_array_t = std::vector<anonymous_t>;
         using component_removal_system_t = std::function<void(const Entity::Id&)>;
-        using component_removal_system_dynamic_array_t = std::vector<component_removal_system_t>;
+        using component_removal_system_map_t = std::vector<component_removal_system_t>;
 
         using system_t = std::function<void(Registry &)>;
         template<typename ...Components>
         using constrained_system_t = std::function<void(Registry &, Entity&)>;
-        using system_dynamic_array_t = std::vector<system_t>;
+        using system_map_t = std::map<std::string, system_t>;
 
     private:
         /**
@@ -266,26 +277,47 @@ namespace silva
          * @retval The index of the component
          */
         template <class Component>
-        inline const component_index_t _type_index() const
-        {
 #ifdef HL_SILVA_DEBUG
+        component_index_t _type_index() const
+        {
             auto it = _components_types_index.find(std::type_index(typeid(Component)));
             if (it == _components_types_index.end())
+            {
                 throw Error("Component " + std::string(typeid(Component).name()) + " is not registered");
+            }
             return it->second;
-#else
-            return _components_types_index.at(std::type_index(typeid(Component)));
-#endif
         }
+#else
+        inline component_index_t _type_index() const
+        {
+            return _components_types_index.at(std::type_index(typeid(Component)));
+        }
+#endif
 
     public:
+        /**
+         * @brief  Checks if an entity is a valid one within the registry
+         *         The entity is still considered valid until the next update
+         *        if it has been killed during the current one
+         * @retval true  Is valid 
+         * @retval false Is not valid
+         */
+        bool is_entity_valid(const Entity::Id &from) const
+        {
+            if (_last_entity_id >= from) // Is in the range of the alive entities
+            {
+                return _killed_entities.find(from) != _killed_entities.end() // Has it been killed ?
+            }
+            return false;
+        }
+
         /**
          * @brief  Removes a component from an entity
          * @param  &from: The entity to remove the component
          * @tparam Component: The type of the component
          */
         template <typename Component>
-        void remove_component(const Entity::Id &from)
+        inline void remove_component(const Entity::Id &from)
         {
             get_components<Component>().erase(from);
         }
@@ -296,7 +328,7 @@ namespace silva
          * @param  &&c: The component to add
          */
         template <typename Component>
-        void insert_component(const Entity::Id &to, Component &&c)
+        inline void insert_component(const Entity::Id &to, Component &&c)
         {
             return get_components<Component>().insert(to, std::move(c));
         }
@@ -309,26 +341,39 @@ namespace silva
          * @tparam ...Params: The types of the parameters
          */
         template <typename Component, typename... Params>
-        void emplace_component(const Entity::Id &to, Params &&...p)
+        inline void emplace_component(const Entity::Id &to, Params &&...p)
         {
             Component c = {std::forward<Params>(p)...};
             get_components<Component>().insert(to, std::move(c));
         }
 
+       /**
+         * @brief  Register one component
+         * @tparam Component: The component type
+         */
+        template <class Component>
+        void register_component()
+        {
+            if (_components_types_index.find(std::type_index(typeid(Component))) != _components_types_index.end())
+            {
+                throw Error("Cannot register twice a component. '" + std::string(typeid(Component).name()) + "' is already registered");
+            }
+
+            _components_types_index[std::type_index(typeid(Component))] = _last_component_index++,
+            _components.push_back(component_sparse_array_t<Component>()),
+            _remove_system_methods.push_back([this](const Entity::Id &id) { this->remove_component<Component>(id); });
+        }
+
         /**
          * @brief  Register one or more components
-         * @tparam Component: The component type
-         * @tparam ...OtherComponents: The other components
+         * @tparam ...Components: All the components types
          */
         template <class ...Components>
         inline void register_components()
         {
-            ((
-                _components_types_index[std::type_index(typeid(Components))] = _last_component_index++,
-                _components.push_back(component_sparse_array_t<Components>()),
-                _remove_system_methods.push_back([this](const Entity::Id &id) { this->remove_component<Components>(id); })
-            ), ...);
+            (register_component<Components>(), ...);
         }
+
 
         /**
          * @brief  Get the component array of the template type
@@ -359,7 +404,10 @@ namespace silva
         Entity spawn_entity()
         {
             if (_killed_entities.empty())
+            {
                 return Entity::from_id(*this, _entities_count++);
+            }
+
             const Entity::Id random_id = *_killed_entities.begin();
             _killed_entities.erase(random_id);
             return Entity::from_id(*this, random_id);
@@ -369,7 +417,7 @@ namespace silva
          * @brief  Destroy an entity (The entity will actually be destroyed at the next call of the update method)
          * @param  entity: The entity to destroy
          */
-        void kill_entity(const Entity::Id &id)
+        inline void kill_entity(const Entity::Id &id)
         {
             _to_kill_entities.insert(id);
         }
@@ -378,18 +426,24 @@ namespace silva
          * @brief  Add a system to the Registry
          * @param  sys: The system to add
          */
-        void add_system(const system_t &sys)
+        void add_system(const std::string& name, const system_t &sys)
         {
-            _systems.push_back(sys);
+            if (_systems.find(name) != _systems.end()) {
+                throw Error("A system '" + name + " has already been registered");
+            }
+            _systems.emplace(name, sys);
         }
 
         /**
          * @brief  Add a system to the Registry (rvalue ref version)
          * @param  sys: The system to add
          */
-        void add_system(system_t &&sys)
+        void add_system(const std::string& name, system_t &&sys)
         {
-            _systems.push_back(sys);
+            if (_systems.find(name) != _systems.end()) {
+                throw Error("A system '" + name + " has already been registered");
+            }
+            _systems.emplace(name, sys);
         }
 
         /**
@@ -398,19 +452,23 @@ namespace silva
          * @param sys: The system to add
          */
         template <typename... Components>
-        void add_csystem(constrained_system_t<Components...> &&sys)
+        inline void add_csystem(const std::string& name, constrained_system_t<Components...> &&sys)
         {
-            _systems.push_back([sys](Registry &r) {
+            add_system(name, [sys](Registry &r) {
                 for (auto it : r.zip<Components...>())
                     sys(r, std::get<Entity>(it));
             });
         }
 
-        // TODO: Implement remove_system
-        template<typename ...Params>
-        void remove_system(Params&&... params)
+        void remove_system(const std::string& name)
         {
-            throw Error("System remove is not implemented yet");
+            auto it = _systems.find(name);
+
+            if (it == _systems.end())
+            {
+                throw Error("Cannot remove system '" + name + " because it is not registered");
+            }
+            _systems.erase(it);
         }
 
         /**
@@ -430,7 +488,7 @@ namespace silva
                 }
                 _to_kill_entities.clear();
             }
-            for (const system_t &system : _systems)
+            for (const auto &[_, system] : _systems)
             {
                 system(*this);
             }
@@ -440,11 +498,12 @@ namespace silva
          * @brief  Return the number of entities (const)
          * @retval Number of entities
          */
-        const Entity::Id entities_count() const
+        inline Entity::Id entities_count() const
         {
             return _entities_count - (_killed_entities.size() + _to_kill_entities.size());
         }
         
+    // TODO: Add a const method
         /**
          * @brief Get the component of an entity
          * @param e: The entity
@@ -452,17 +511,22 @@ namespace silva
          * @retval Component&
          */
         template<typename Component>
+#if HL_SILVA_DEBUG
         Component &get_component(const Entity::Id &id)
         {
-#if HL_SILVA_DEBUG
             auto& ref = get_components<Component>()[id];
             if (ref.has_value() == false)
+            {
                 throw Error("Entity " + std::to_string(id) + " does not have the component " + std::string(typeid(Component).name()));
+            }
             return ref.value();
-#else
-            return get_components<Component>()[id].value();
-#endif
         }
+#else
+        inline Component &get_component(const Entity::Id &id)
+        {
+            return get_components<Component>()[id].value();
+        }
+#endif
 
         /**
          * @brief  Makes a class that can be used to iterate on all the specified components
@@ -470,13 +534,19 @@ namespace silva
          * @retval zipper<Components...>: The iterator of the components
          */
         template <typename... Components>
-        Zipper<Components...> zip() { return Zipper<Components...>(*this); }
+        inline Zipper<Components...> zip()
+        {
+            return Zipper<Components...>(*this);
+        }
 
         /**
          * @brief Alias for the zip method because people are used to the view method
          */
         template <typename... Components>
-        View<Components...> view() { return Zipper<Components...>(*this); }
+        inline View<Components...> view()
+        {
+            return Zipper<Components...>(*this);
+        }
 
         /**
          * @brief  Print the registry info
@@ -491,14 +561,14 @@ namespace silva
         component_index_t _last_component_index = 0;
         component_registry_t _components_types_index;
         components_dynamic_array_t _components;
-        component_removal_system_dynamic_array_t _remove_system_methods;
+        component_removal_system_map_t _remove_system_methods;
 
         Entity::Id _entities_count = 0;
         dead_entities_t _to_kill_entities;
         dead_entities_t _killed_entities;
         Entity::Id _last_entity_id = -1;
 
-        system_dynamic_array_t _systems;
+        system_map_t _systems;
     };
 
     /**
@@ -521,7 +591,7 @@ namespace silva
              * @brief  Returns the current value of the iterator
              * @retval iterator_result: The current value of the iterator
              */
-            iterator_result_t operator*()
+            inline iterator_result_t operator*()
             {
                 // TODO: Should we check for validity? (i.e. already reached end)
                 return iterator_result_t(
@@ -533,7 +603,7 @@ namespace silva
              * @brief Returns the current value of the iterator (const)
              * @retval iterator_result: The current value of the iterator
              */
-            const iterator_result_t operator*() const
+            inline iterator_result_t operator*() const
             {
                 return iterator_result(
                     _idx,
@@ -544,7 +614,7 @@ namespace silva
              * @brief  Increment the iterator
              * @retval Reference of the iterator
              */
-            iterator &operator++()
+            inline iterator &operator++()
             {
                 incr_all();
                 return *this;
@@ -554,7 +624,7 @@ namespace silva
              * @brief  Increment the iterator (non const)
              * @retval Reference of the iterator
              */
-            const iterator &operator++() const
+            inline const iterator &operator++() const
             {
                 incr_all();
                 return *this;
@@ -566,7 +636,7 @@ namespace silva
              * @param  &rhs: The second iterator
              * @retval True if the two iterators are equal
              */
-            friend bool operator==(iterator const &lhs,
+            inline friend bool operator==(iterator const &lhs,
                                    iterator const &rhs)
             {
                 return lhs._idx == rhs._idx;
@@ -578,7 +648,7 @@ namespace silva
              * @param  &rhs: The second iterator
              * @retval True if the two iterators are different
              */
-            friend bool operator!=(iterator const &lhs,
+            inline friend bool operator!=(iterator const &lhs,
                                    iterator const &rhs)
             {
                 return !(lhs == rhs);
@@ -605,13 +675,16 @@ namespace silva
             /**
              * @brief Return the index of the iterator (i.e. the entity id)
              */
-            const std::size_t index() const { return _idx; }
+            inline std::size_t index() const
+            {
+                return _idx;
+            }
 
         private:
             /**
              * @brief  Increment the iterator
              */
-            void incr_all() const
+            inline void incr_all() const
             {
                 for (++_idx; !all_set() && _idx != _end; ++_idx);
             }
@@ -620,7 +693,7 @@ namespace silva
              * @brief  Check if all the containers are set at the current index
              * @retval True if all the containers are set at the current index
              */
-            inline const bool all_set() const
+            inline bool all_set() const
             {
                 return (std::get<sparse_array<Containers> &>(_current).non_null(_idx) && ...);
             }
@@ -646,31 +719,43 @@ namespace silva
          * @brief  Return the begin iterator
          * @retval Begin iterator
          */
-        iterator begin() { return _begin; }
+        inline iterator begin()
+        {
+            return _begin;
+        }
 
         /**
          * @brief  Return the begin iterator (const)
          * @retval Begin iterator
          */
-        const iterator begin() const { return _begin; }
+        inline const iterator begin() const
+        {
+            return _begin;
+        }
 
         /**
          * @brief  Return the end iterator
          * @retval End iterator
          */
-        iterator end() { return _end; }
+        inline iterator end()
+        {
+            return _end;
+        }
 
         /**
          * @brief  Return the end iterator (const)
          * @retval End iterator
          */
-        const iterator end() const { return _end; }
+        inline const iterator end() const
+        {
+            return _end;
+        }
 
         using each_t = std::function<void(Containers &...)>;
-        using each2_t = std::function<void(Entity, Containers &...)>;
+        using each_entity_t = std::function<void(const Entity&, Containers &...)>;
 
         template<bool IncludeEntity>
-        using which_each = typename std::conditional<IncludeEntity, each2_t, each_t>::type&&;
+        using which_each = typename std::conditional<IncludeEntity, each_entity_t, each_t>::type&&;
 
         /**
          * @brief Apply a function to all the entities that the zipper::iterator considers valid
@@ -717,83 +802,87 @@ namespace silva
 
     // Entity methods implementation
 
-    Entity Entity::operator=(const Entity& entity)
+    Entity &Entity::operator=(const Entity& entity)
     {
-        if (*this == entity) return *this;
+        if (*this == entity)
+        {
+            return *this;
+        }
 
         _registry = entity._registry;
         _id = entity._id;
         return *this;
     }
 
-    void Entity::kill()
+    inline void Entity::kill()
     {
         _registry.kill_entity(_id);
     }
 
     template<typename Component>
-    Entity& Entity::insert(Component &&c)
+    inline Entity& Entity::insert(Component &&c)
     {
         _registry.insert_component(_id, std::move(c));
         return *this;
     }
 
     template<typename Component, typename... Params>
-    Entity& Entity::emplace(Params&&... p)
+    inline Entity& Entity::emplace(Params&&... p)
     {
         _registry.emplace_component<Component>(_id, std::forward<Params>(p)...);
         return *this;
     }
 
     template<typename Component>
-    Entity& Entity::remove()
+    inline Entity& Entity::remove()
     {
         _registry.remove_component<Component>(_id);
         return *this;
     }
 
     template<typename Component>
-    Component& Entity::get()
+    inline Component& Entity::get()
     {
         return _registry.get_component<Component>(_id);
     }
 
     template<typename Component>
-    const Component& Entity::get() const
+    inline const Component& Entity::get() const
     {
         return _registry.get_component<Component>(_id);
     }
 
-    bool Entity::is_valid() const
+    inline bool Entity::is_valid() const
     {
-        throw Error("Entity::is_valid is not implemented yet");
+        return _registry.is_entity_valid(_id);
     }
 
     // std::get for std::tuple that always returns a reference to the value to avoid copying
 
     template<typename T, typename U>
-    std::remove_reference_t<T> &get(U &it)
+    inline pure_type_t<T> &get(U &it)
     {
-        return std::get<std::remove_reference_t<T> &>(it);
-    }
-
-
-    template<typename T, typename U>
-    const std::remove_const_t<std::remove_reference_t<T>> &get(U const &it)
-    {
-        return std::get<std::remove_const_t<std::remove_reference_t<T>> &>(it);
+        return std::get<pure_type_t<T> &>(it);
     }
 
     template<typename T, typename U>
-    std::remove_reference_t<T> get(U &&it)
+    inline const pure_type_t<T> &get(const U &it)
     {
-        return std::get<std::remove_reference_t<T>>(it);
+        return std::get<pure_type_t<T> &>(it);
     }
 
     template<typename T, typename U>
-    const std::remove_const_t<std::remove_reference_t<T>> get(U &&it)
+    inline pure_type_t<T> &get(U &&it)
     {
-        return std::get<std::remove_const_t<std::remove_reference_t<T>>>(it);
+        return std::get<pure_type_t<T> &>(it);
+    }
+
+    template<typename T, typename U>
+    inline const pure_type_t<T> &get(U &&it)
+    {
+        return std::get<pure_type_t<T> &>(it);
     }
 }
 }
+
+

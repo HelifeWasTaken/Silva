@@ -3,6 +3,12 @@
 #include "Silva"
 #include "SilvaState"
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #define MAKE_DUMMY(n) struct dummy##n { int x; }
 
 MAKE_DUMMY(0);
@@ -21,6 +27,7 @@ TEST(Entities, create_registry)
 {
     hl::silva::Registry r;
 }
+
 TEST(Entities, create_entity)
 {
     hl::silva::Registry r;
@@ -63,7 +70,7 @@ TEST(Components, test_emplace_component_to_entity)
     hl::silva::Entity e = r.spawn_entity();
 
     r.register_components<dummy1>();
-    r.emplace_component<dummy1>(e);
+    e.emplace<dummy1>();
 }
 
 TEST(Components, test_emplace_component_to_entity_2)
@@ -72,7 +79,7 @@ TEST(Components, test_emplace_component_to_entity_2)
     hl::silva::Entity e = r.spawn_entity();
 
     r.register_components<dummy1>();
-    r.emplace_component<dummy1>(e, 1);
+    e.emplace<dummy1>(1);
 }
 
 TEST(Components, test_get_component_from_entity_eq)
@@ -81,7 +88,7 @@ TEST(Components, test_get_component_from_entity_eq)
     hl::silva::Entity e = r.spawn_entity();
 
     r.register_components<dummy1>();
-    r.emplace_component<dummy1>(e, 1);
+    e.emplace<dummy1>(1);
 
     auto& c = r.get_component<dummy1>(e);
     EXPECT_EQ(c.x, 1);
@@ -93,7 +100,7 @@ TEST(Components, test_get_component_from_entity_after_removal)
     hl::silva::Entity e = r.spawn_entity();
 
     r.register_components<dummy1>();
-    r.emplace_component<dummy1>(e, 1);
+    e.emplace<dummy1>(1);
 
     r.remove_component<dummy1>(e);
     try {
@@ -110,7 +117,7 @@ TEST(Components, test_get_component_from_entity_after_removal_2)
     hl::silva::Entity e = r.spawn_entity();
 
     r.register_components<dummy1>();
-    r.emplace_component<dummy1>(e, 1);
+    e.emplace<dummy1>(1);
     r.kill_entity(e);
 
     try {
@@ -133,7 +140,7 @@ TEST(Components, test_get_component_from_entity_after_removal_3)
     hl::silva::Entity e = r.spawn_entity();
 
     r.register_components<dummy1>();
-    r.emplace_component<dummy1>(e, 1);
+    e.emplace<dummy1>(1);
     r.kill_entity(e);
 
     try {
@@ -164,8 +171,8 @@ TEST(Components, test_emplace_same_component)
     hl::silva::Entity e = r.spawn_entity();
 
     r.register_components<dummy1>();
-    r.emplace_component<dummy1>(e, 1);
-    r.emplace_component<dummy1>(e, 2);
+    e.emplace<dummy1>(1);
+    e.emplace<dummy1>(2);
 
     auto& c = r.get_component<dummy1>(e);
     EXPECT_EQ(c.x, 2);
@@ -178,7 +185,7 @@ TEST(Components, test_emplace_multiple_components_to_entity)
 
     r.register_components<dummy1, dummy2>();
 
-    r.emplace_component<dummy1>(e, 1);
+    e.emplace<dummy1>(1);
     r.emplace_component<dummy2>(e, 2);
 
     auto& c1 = r.get_component<dummy1>(e);
@@ -190,14 +197,14 @@ TEST(Components, test_emplace_multiple_components_to_entity)
 TEST(Systems, test_system_creation)
 {
     hl::silva::Registry r;
-    r.add_system([](hl::silva::Registry& r) {});
+    r.add_system("test", [](hl::silva::Registry& r) {});
 }
 
 TEST(Systems, test_system_creation_2)
 {
     hl::silva::Registry r;
-    r.add_system([](hl::silva::Registry& r) {});
-    r.add_system([](hl::silva::Registry& r) {});
+    r.add_system("test", [](hl::silva::Registry& r) {});
+    r.add_system("test2", [](hl::silva::Registry& r) {});
 }
 
 TEST(Systems, test_system_test_update)
@@ -207,8 +214,8 @@ TEST(Systems, test_system_test_update)
 
     r.register_components<dummy0>();
 
-    r.emplace_component<dummy0>(e, 1);
-    r.add_system([&e](hl::silva::Registry& r) {
+    e.emplace<dummy0>(1);
+    r.add_system("test", [&e](hl::silva::Registry& r) {
         r.get_component<dummy0>(e).x = 2;
     });
     EXPECT_EQ(r.get_component<dummy0>(e).x, 1);
@@ -223,12 +230,12 @@ TEST(Systems, test_system_update_after_removal)
 
     r.register_components<dummy0>();
 
-    r.emplace_component<dummy0>(e, 1);
-    r.add_system([&e](hl::silva::Registry& r) { r.get_component<dummy0>(e).x = 2; });
+    e.emplace<dummy0>(1);
+    r.add_system("test", [&e](hl::silva::Registry& r) { r.get_component<dummy0>(e).x = 2; });
     EXPECT_EQ(r.get_component<dummy0>(e).x, 1);
     r.update();
     EXPECT_EQ(r.get_component<dummy0>(e).x, 2);
-    r.remove_system();
+    r.remove_system("test");
     r.get_component<dummy0>(e).x = 3;
     r.update();
     EXPECT_EQ(r.get_component<dummy0>(e).x, 3);
@@ -241,13 +248,13 @@ TEST(Systems, test_system_update_after_removal_2)
 
     r.register_components<dummy0>();
 
-    r.emplace_component<dummy0>(e, 1);
-    r.add_system([&e](hl::silva::Registry& r) {
+    e.emplace<dummy0>(1);
+    r.add_system("test", [&e](hl::silva::Registry& r) {
         r.get_component<dummy0>(e).x = 2;
     });
     r.update();
     EXPECT_EQ(r.get_component<dummy0>(e).x, 2);
-    r.remove_system("dummy0");
+    r.remove_system("test");
     r.spawn_entity();
     r.get_component<dummy0>(e).x = 3;
     r.update();
@@ -261,12 +268,12 @@ TEST(Systems, test_multiple_systems)
 
     r.register_components<dummy0, dummy1>();
 
-    r.emplace_component<dummy0>(e, 1);
-    r.emplace_component<dummy1>(e, 2);
-    r.add_system([&e](hl::silva::Registry& r) {
+    e.emplace<dummy0>(1);
+    e.emplace<dummy1>(2);
+    r.add_system("d0add4", [&e](hl::silva::Registry& r) {
         r.get_component<dummy0>(e).x += 4;
     });
-    r.add_system([&e](hl::silva::Registry& r) {
+    r.add_system("d1add1", [&e](hl::silva::Registry& r) {
         r.get_component<dummy1>(e).x += 1;
     });
     r.update();
@@ -285,13 +292,13 @@ TEST(Systems, make_multiple_entities_and_remove_them)
 
     for (unsigned int i = 0; i < 100; i++) {
         hl::silva::Entity e = r.spawn_entity();
-        r.emplace_component<dummy0>(e, 1);
-        r.emplace_component<dummy1>(e, 2);
+        e.emplace<dummy0>(1);
+        e.emplace<dummy1>(2);
     }
 
     EXPECT_EQ(r.entities_count(), 100);
 
-    r.add_system([](hl::silva::Registry& r) {
+    r.add_system("kall", [](hl::silva::Registry& r) {
         for (auto [e, _, __] : r.view<dummy0, dummy1>()) {
             r.kill_entity(e);
         }
@@ -320,8 +327,8 @@ TEST(Views, test_get_entity_from_view)
     hl::silva::Registry r;
     r.register_components<dummy0, dummy1>();
     hl::silva::Entity e = r.spawn_entity();
-    r.emplace_component<dummy0>(e, 1);
-    r.emplace_component<dummy1>(e, 2);
+    e.emplace<dummy0>(1);
+    e.emplace<dummy1>(2);
     auto view = r.view<dummy0, dummy1>();
 
     int i = 0;
@@ -341,8 +348,8 @@ TEST(Views, test_get_entity_from_view_2)
     r.register_components<dummy0, dummy1>();
     for (unsigned int i = 0; i < entityCount; i++) {
         hl::silva::Entity e = r.spawn_entity();
-        r.emplace_component<dummy0>(e, 1);
-        r.emplace_component<dummy1>(e, 2);
+        e.emplace<dummy0>(1);
+        e.emplace<dummy1>(2);
     }
     int i = 0;
     for (const auto& v : r.view<dummy0, dummy1>()) {
@@ -362,8 +369,8 @@ TEST(Views, test_get_entity_from_non_matching_view)
 
     for (unsigned int i = 0; i < entityCount; i++) {
         hl::silva::Entity e = r.spawn_entity();
-        r.emplace_component<dummy0>(e, 1);
-        r.emplace_component<dummy1>(e, 2);
+        e.emplace<dummy0>(1);
+        e.emplace<dummy1>(2);
     }
     int i = 0;
     for (const auto& v : view)
@@ -379,8 +386,8 @@ TEST(Views, test_expanded_ranged_for)
     r.register_components<dummy0, dummy1>();
     for (unsigned int i = 0; i < entityCount; i++) {
         hl::silva::Entity e = r.spawn_entity();
-        r.emplace_component<dummy0>(e, 1);
-        r.emplace_component<dummy1>(e, 2);
+        e.emplace<dummy0>(1);
+        e.emplace<dummy1>(2);
     }
     int i = 0;
     for (const auto& [e, d0, d1] : r.view<dummy0, dummy1>()) {
@@ -400,8 +407,8 @@ TEST(Views, each)
     r.register_components<dummy0, dummy1>();
     for (unsigned int i = 0; i < entityCount; i++) {
         hl::silva::Entity e = r.spawn_entity();
-        r.emplace_component<dummy0>(e, 1);
-        r.emplace_component<dummy1>(e, 2);
+        e.emplace<dummy0>(1);
+        e.emplace<dummy1>(2);
     }
     hl::silva::Entity::Id i = 0;
     r.view<dummy0, dummy1>().each([&i](const dummy0& d0, const dummy1& d1) {
@@ -420,8 +427,8 @@ TEST(Views, each2)
     r.register_components<dummy0, dummy1>();
     for (unsigned int i = 0; i < entityCount; i++) {
         hl::silva::Entity e = r.spawn_entity();
-        r.emplace_component<dummy0>(e, 1);
-        r.emplace_component<dummy1>(e, 2);
+        e.emplace<dummy0>(1);
+        e.emplace<dummy1>(2);
     }
     hl::silva::Entity::Id i = 0;
     r.view<dummy0, dummy1>().each<true>([&i](const hl::silva::Entity& e, const dummy0& d0, const dummy1& d1) {
@@ -440,8 +447,8 @@ TEST(SampleCase, sample1_with_r)
     hl::silva::Entity e2 = r.spawn_entity();
 
     r.register_components<dummy0, dummy1, dummy2>();
-    r.emplace_component<dummy0>(e, 1);
-    r.emplace_component<dummy1>(e, 1);
+    e.emplace<dummy0>(1);
+    e.emplace<dummy1>(1);
     r.emplace_component<dummy2>(1);
 
     e2.emplace<dummy1>(2).emplace<dummy2>(3);
@@ -630,9 +637,14 @@ TEST(StateMachine, test_update)
 }
 
 // TODO: Test State push pop stop
+// TODO: Test is_entity_valid
 
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
