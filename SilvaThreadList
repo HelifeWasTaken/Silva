@@ -33,8 +33,10 @@
 #include <condition_variable>
 #include <memory>
 
-namespace hl {
-namespace silva {
+namespace hl
+{
+namespace silva 
+{
 
 #ifndef SILVA_THREAD_LIST_DEFAULT_SIZE
 #define SILVA_THREAD_LIST_DEFAULT_SIZE 20
