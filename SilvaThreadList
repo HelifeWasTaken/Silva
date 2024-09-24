@@ -1,0 +1,280 @@
+/**
+ * SilvaThreadList
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * 
+ * Made by: Mattis DALLEAU
+ */
+
+#pragma once
+
+#include <vector>
+#include <thread>
+#include <optional>
+#include <functional>
+#include <mutex>
+#include <queue>
+#include <atomic>
+#include <condition_variable>
+#include <memory>
+
+namespace hl {
+namespace silva {
+
+#ifndef SILVA_THREAD_LIST_DEFAULT_SIZE
+#define SILVA_THREAD_LIST_DEFAULT_SIZE 20
+#endif
+
+class SilvaThreadList
+{
+private:
+    std::vector<std::thread> _threads;
+    std::queue<std::size_t> _available_indexes;
+    std::queue<std::size_t> _to_release;
+
+
+    std::thread _thread_push;
+    std::thread _thread_release;
+    mutable std::mutex _mutex;
+
+    std::queue<std::function<void(void)>> _queue;
+
+    std::atomic_bool _running = true;
+    std::atomic_size_t _running_threads_count = 0;
+
+    template<bool Lock=false>
+    inline bool _has_finished() const
+    {
+        if constexpr (Lock == false) {
+            return _to_release.empty() == true &&
+                    _queue.empty() == true &&
+                    _running_threads_count == 0;
+        } else {
+            std::lock_guard<std::mutex> lock(this->_mutex);
+            return _has_finished<false>();
+        }
+    }
+
+public:
+    SilvaThreadList(const std::size_t& size=SILVA_THREAD_LIST_DEFAULT_SIZE)
+    {
+        this->_threads.reserve(size);
+
+        for (std::size_t i = 0; i < size; i++)
+        {
+            this->_threads.push_back(std::thread());
+            this->_available_indexes.push(i);
+        }
+
+        this->_thread_push = std::thread(
+            [this]
+            (void) -> void
+            {
+                while (this->_running == true)
+                {
+                    std::lock_guard<std::mutex> lock(this->_mutex);
+
+                    if (this->_running == false && this->_has_finished<false>() == true)
+                    {
+                        std::cout << "th push has finished" << std::endl;
+                        return;
+                    }
+
+                    if (this->_available_indexes.empty() == true)
+                        continue;
+
+                    if (this->_queue.empty() == false)
+                    {
+                        this->_running_threads_count++;
+                        this->_queue.front()();
+                        this->_queue.pop();
+                    }
+                }
+            }
+        );
+
+        this->_thread_release = std::thread(
+            [this]
+            (void) -> void
+            {
+                while (this->_running == true)
+                {
+                    std::lock_guard<std::mutex> lock(this->_mutex);
+
+                    if (this->_running == false && this->_has_finished<false>() == true)
+                    {
+                        std::cout << "th release has finished" << std::endl;
+                        return;
+                    }
+
+                    while (this->_to_release.empty() == false)
+                    {
+                        const std::size_t index = this->_to_release.front();
+                        this->_threads[index].join();
+                        this->_to_release.pop();
+                        this->_available_indexes.push(index);
+                        this->_running_threads_count--;
+                    }
+                }
+            }
+        );
+    }
+
+    ~SilvaThreadList()
+    {
+        join();
+        _running = false;
+        _thread_push.join();
+        _thread_release.join();
+    }
+
+    template<typename F, typename... Args>
+    void start(F&& f, Args&&... args)
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+
+        if (_running == false) {
+            return;
+        }
+
+        // Index is popped after the callback
+        this->_queue.push(
+            [this, f, args...]
+            (void) -> void
+            {
+                const std::size_t index = this->_available_indexes.front();
+                this->_available_indexes.pop();
+
+                this->_threads[index] = std::thread(
+                    [this, index, f, args...]
+                    (void) -> void
+                    {
+                        f(args...);
+                        std::lock_guard<std::mutex> lock(this->_mutex);
+                        this->_to_release.push(index);
+                    }
+                );
+
+            }
+        );
+    }
+
+    void join(void)
+    {
+        while (!_has_finished<true>());
+    }
+
+    void stop(bool remove_pending_queue=false)
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _running = false;
+
+        if (remove_pending_queue)
+        {
+            while (!_queue.empty())
+            {
+                _queue.pop();
+            }
+
+        }
+    }
+};
+
+class GPUThreadSim
+{
+public:
+    struct ThreadIndex {
+        unsigned int x, y, z;
+        ThreadIndex(unsigned int x, unsigned int y, unsigned int z=1)
+            : x(x), y(y), z(z)
+        {};
+    };
+
+    template<typename... Args>
+    using GPUCallback = std::function<void(const ThreadIndex&, Args...)>;
+
+    using GPUIndexFormat = std::function<ThreadIndex(const ThreadIndex&)>;
+
+    static inline const GPUIndexFormat XYZ = [](const ThreadIndex& index) -> ThreadIndex { return index; };
+    static inline const GPUIndexFormat XZY = [](const ThreadIndex& index) -> ThreadIndex { return ThreadIndex(index.x, index.z, index.y); };
+    static inline const GPUIndexFormat YXZ = [](const ThreadIndex& index) -> ThreadIndex { return ThreadIndex(index.y, index.x, index.z); };
+    static inline const GPUIndexFormat YZX = [](const ThreadIndex& index) -> ThreadIndex { return ThreadIndex(index.y, index.z, index.x); };
+    static inline const GPUIndexFormat ZXY = [](const ThreadIndex& index) -> ThreadIndex { return ThreadIndex(index.z, index.x, index.y); };
+    static inline const GPUIndexFormat ZYX = [](const ThreadIndex& index) -> ThreadIndex { return ThreadIndex(index.z, index.y, index.x); };
+
+private:
+    SilvaThreadList _thread_list;
+
+public:
+    GPUThreadSim(unsigned int thread_count=SILVA_THREAD_LIST_DEFAULT_SIZE)
+        : _thread_list(thread_count)
+    {
+    }
+
+    template<typename... Args>
+    void start_fmt(const ThreadIndex& size,
+        GPUCallback<Args...>&& callback,
+        GPUIndexFormat&& format,
+        Args&&... args)
+
+    {
+        for (unsigned int x = 0; x < _thread_index_target.x; x++)
+        {
+            for (unsigned int y = 0; y < _thread_index_target.y; y++)
+            {
+                for (unsigned int z = 0; z < _thread_index_target.z; z++)
+                {
+                    _thread_list.start(
+                        (const ThreadIndex& index, Args&& ...args)
+                        {
+                            callback(ThreadIndex(x, y, z), std::forward<Args>(args)...);
+                        },
+                        format(ThreadIndex(x, y, z)), std::forward<Args>(args)...
+                    );
+                }
+            }
+        }
+    }
+
+    template<typename... Args>
+    void start(const ThreadIndex& size,
+        GPUCallback<Args...>&& callback,
+        Args&&... args)
+    {
+        start_fmt(size, std::forward<GPUCallback<Args...>>(callback), ZYX, std::forward<Args>(args)...);
+    }
+
+    ~GPUThreadSim()
+    {
+        _thread_list.stop(false);
+        join();
+    }
+
+    void join(void)
+    {
+        _thread_list.join();
+    }
+
+    void stop(void)
+    {
+        _thread_list.stop(true);
+    }
+};
+
+}
+}
