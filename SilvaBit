@@ -8,6 +8,10 @@ namespace silva
 namespace bit
 {
 
+/**
+ * @brief Endianess enum
+ * @details Enum for the endianess
+ */
 enum class endian
 {
 #if __cplusplus >= 202002L
@@ -28,10 +32,21 @@ enum class endian
 #endif
 };
 
-// Big Endian
+/**
+ * @brief Enable when arithmetic
+ * @details Enable when the type is arithmetic
+ */
 template<typename T>
 using enable_when_arithmetic = std::enable_if_t<std::is_arithmetic<T>::value, bool>;
 
+/**
+ * @brief Swap endian
+ * @details Swaps the endian of a value
+ * 
+ * @tparam T The type of the value
+ * @param value The value to swap
+ * @return The swapped value
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr T swap_endian(const T &value)
 {
@@ -87,33 +102,62 @@ static inline constexpr T swap_endian(const T &value)
 #endif
 }
 
+/**
+ * @brief Transform a native value to big
+ * @tparam T The type of the value
+ * @param value The value to transform
+ * @retval T The value in big endian
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr T to_big_endian(const T &value)
 {
-    return endian::native == endian::big ? value : _swap_endian(value);
+    return endian::native == endian::big ? value : swap_endian(value);
 }
 
+/**
+ * @brief Transform a native value to big (inplace)
+ * @param value The value to transform
+ * @tparam T The type of the value
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr void to_big_endian_inplace(T &value)
 {
     value = to_big_endian(value);
 }
 
-// Little Endian
+/**
+ * @brief Transform a native value to little
+ * @tparam T The type of the value
+ * @retval T The value in little endian
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr T to_little_endian(const T &value)
 {
-    return endian::native == endian::little ? value : _swap_endian(value);
+    return endian::native == endian::little ? value : swap_endian(value);
 }
 
+/**
+ * @brief Transform a native value to little endian
+ * @tparam T The type of the value
+ * @param value The value to transform
+ * @retval T The value in little endian
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr void to_little_endian_inplace(T &value)
 {
     value = to_little_endian(value);
 }
 
-// Network
-
+/**
+ * @brief Swap the value to network endian (big)
+ * @tparam T The type of the value
+ * @param value The value to swap
+ * @retval T The value in network endian
+ * @note This function assumes that the given value is in native endian
+ *       Applying twice this function will return the original value everytime
+ *       Which means that network_to_native(value) == native_to_network(value)
+ *       Thoses functions are the same but are named differently for readability
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr T native_to_network(const T &value)
 {
@@ -123,18 +167,46 @@ static inline constexpr T native_to_network(const T &value)
     return value;
 }
 
+/**
+ * @brief Swap the value to native (big)
+ * @tparam T The type of the value
+ * @param value The value to swap
+ * @retval T The value in network endian
+ * @note This function assumes that the given value is in network endian
+ *       Applying twice this function will return the original value everytime
+ *       Which means that network_to_native(value) == native_to_network(value)
+ *       Thoses functions are the same but are named differently for readability
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr T network_to_native(const T &value)
 {
     return native_to_network(value); // actually does the same (is the same as calling byteswap but only checks if the endianess is already big)
 }
 
+/**
+ * @brief Swap the value to network endian (big) (inplace)
+ * @tparam T The type of the value
+ * @param value The value to swap
+ * @note This function assumes that the given value is in native endian
+ *       Applying twice this function will return the original value everytime
+ *       Which means that network_to_native(value) == native_to_network(value)
+ *       Thoses functions are the same but are named differently for readability
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr void native_to_network_inplace(T &value)
 {
     value = native_to_network(value);
 }
 
+/**
+ * @brief Swap the value to native (big) (inplace)
+ * @tparam T The type of the value
+ * @param value The value to swap
+ * @note This function assumes that the given value is in network endian
+ *       Applying twice this function will return the original value everytime
+ *       Which means that network_to_native(value) == native_to_network(value)
+ *       Thoses functions are the same but are named differently for readability
+ */
 template<typename T, enable_when_arithmetic<T> = true>
 static inline constexpr void network_to_native_inplace(T &value)
 {

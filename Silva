@@ -20,7 +20,6 @@
  * 
  * Made by: Mattis DALLEAU
  */
-
 #pragma once
 
 #include <any>
@@ -730,7 +729,6 @@ public:
          */
         inline iterator_result_t operator*()
         {
-            // TODO: Should we check for validity? (i.e. already reached end)
             return iterator_result_t(
                 Entity::from_id(_registry, _idx),
                 std::get<sparse_array<Containers> &>(_current)[_idx].value()...);
@@ -826,8 +824,6 @@ public:
          */
         iterator &operator=(const iterator &it) = default;
 
-        // TODO: Maybe implement the move constructor and move assignment
-
         /**
          * @brief  Move constructor of the iterator (deleted)
          */
@@ -897,8 +893,6 @@ public:
      * @param z: The zipper to copy
      */
     Zipper &operator=(const Zipper &z) = default;
-
-    // TODO: Maybe implement the move constructor and move assignment
 
     /**
      * @brief Move constructor of the zipper (deleted)

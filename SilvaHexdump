@@ -47,16 +47,30 @@ namespace hl
 namespace silva
 {
 
+/**
+ * @brief HexdumpConfig
+ * @details A configuration for the hexdump
+ */
 template <u8 RowSize, bool8 ShowAscii>
 struct HexdumpConfig
 {
+    /**
+     * @brief Construct a new HexdumpConfig object
+     * @param  data: The data to dump
+     * @param  length: The length of the data
+     */
     HexdumpConfig(const void *data, const u64 &length) :
         m_data(static_cast<const byte *>(data)), m_length(length) { }
 
     const byte *m_data;
     const u64 m_length;
 
-    friend std::ostream& operator<<(std::ostream& out, const HexdumpConfig<RowSize, ShowAscii>& dump)
+    /**
+     * @brief Print the hexdump
+     * @param  out: The output stream
+     * @retval The output stream
+     */
+    void print(std::ostream &out) const
     {
         out.fill('0');
         for (int i = 0; i < dump.m_length; i += RowSize)
@@ -87,6 +101,18 @@ struct HexdumpConfig
             }
             out << std::endl;
         }
+        return out;
+    }
+
+    /**
+     * @brief Operator << overload
+     * @param  out: The output stream
+     * @param  dump: The dump to print
+     * @retval The output stream
+     */
+    friend std::ostream& operator<<(std::ostream& out, const HexdumpConfig<RowSize, ShowAscii>& dump)
+    {
+        dump.print(out);
         return out;
     }
 };
