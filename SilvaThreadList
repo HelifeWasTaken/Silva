@@ -316,8 +316,8 @@ public:
     };
 
     struct ThreadIndex::iterable {
-        const ThreadIndex& _index;
-        const ThreadIndex& _size;
+        const ThreadIndex _index;
+        const ThreadIndex _size;
 
         iterable(const ThreadIndex& size)
             : _index(ThreadIndex()), _size(size)
