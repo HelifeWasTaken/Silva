@@ -1,0 +1,42 @@
+#include <cstdint>
+
+namespace hl
+{
+namespace silva
+{
+
+using u8    = std::uint8_t;
+using u16   = std::uint16_t;
+using u32   = std::uint32_t;
+using u64   = std::uint64_t;
+using i8    = std::int8_t;
+using i16   = std::int16_t;
+using i32   = std::int32_t;
+using i64   = std::int64_t;
+using f32   = float;
+using f64   = double;
+using bool8 = bool;
+
+using byte  = u8;
+
+#ifdef __SIZEOF_INT128__
+using u128 = __uint128_t;
+using i128 = __int128_t;
+#endif
+
+#ifdef __SIZEOF_INT256__
+using u256 = __uint256_t;
+using i256 = __int256_t;
+#endif
+
+#ifdef __SIZEOF_FLOAT128__
+using f128 = __float128;
+#endif
+
+#ifdef __SIZEOF_FLOAT256__
+using f256 = __float256;
+#endif
+
+
+} // silva
+} // hl

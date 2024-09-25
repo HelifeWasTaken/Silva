@@ -37,3 +37,5 @@ main2.cpp
 # History files
 .history
 .vscode
+
+vgcore.*
