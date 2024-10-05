@@ -235,9 +235,11 @@ public:
      */
     size_type get_index(value_type const &val) const
     {
-        return (reinterpret_cast<char *>(&val) -
+        return (&val >= _data.data() && &val <= _data.data() _data.size()) ?
+		((reinterpret_cast<char *>(&val) -
                 reinterpret_cast<char *>(_data.data())) /
-                sizeof(value_type);
+                sizeof(value_type)) : 
+		static_cast<size_type>(-1);
     }
 
     /**
@@ -255,5 +257,6 @@ public:
 private:
     container_t _data;
 };
+
 }
 }
