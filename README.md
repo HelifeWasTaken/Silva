@@ -11,15 +11,72 @@ If you are here for [SilvaCollection](https://github.com/HelifeWasTaken/SilvaCol
 ```cpp
 #include "Silva"
 
-struct Vec3 { float x, y, z; }
-Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}; }
+struct Vec3 {
+    float x, y, z;
 
-struct Gravity : public Vec3 {};
-struct Position : public Vec3 {};
+    Vec3() : x(0), y(0), z(0) {}
+    Vec3(float px, float py, float pz) : x(px), y(py), z(pz) {}
 
-struct RigidBody {
-    float mass, velocity, accecleration;
+    Vec3(const Vec3& other) = default;
+    Vec3(Vec3&& other) = default;
+    Vec3 &operator=(Vec3&& other) = default;
+    Vec3 &operator=(const Vec3& other) = default;
+
+    friend Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}; }
+    Vec3& operator+=(const Vec3& b) { return *this = *this + b; }
 };
+
+struct Gravity : public Vec3 {
+    Gravity() : Vec3(0, -9.8, 0) {}
+    Gravity(const Vec3& gravity) : Vec3(gravity) {}
+};
+
+struct Position : public Vec3 {
+    Position() = default;
+    Position(const Vec3& position) : Vec3(position) {}
+};
+
+struct RigidBody : public Vec3 {
+    float &mass = Vec3::x;
+    float &velocity = Vec3::y; 
+    float &accecleration = Vec3::z;
+
+    RigidBody(float pmass, float pvelocity, float pacceleration)
+        : Vec3(pmass, pvelocity, pacceleration)
+    {}
+
+    RigidBody() = default;
+};
+
+// This is not an accurate Earth system force application, It is just here for the example
+
+static inline void gravity_system(hl::silva::Registry& registry)
+{
+    // Only take the entities that have a RigidBody a Position and a Gravity component
+    for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
+        position.y += rigidBody.velocity;
+        rigidBody.velocity += rigidBody.acceleration;
+        position = gravity + position;
+    }
+}
+
+static inline void gravity_system_method2(hl::silva::Registry& registry)
+{
+    registry.view<Position, RigidBody, Gravity>.each([](Position& position, RigidBody& body, Gravity& gravity) {
+        position.y += rigidBody.velocity;
+        rigidBody.velocity += rigidBody.acceleration;
+        position = gravity + position;
+    });
+}
+
+static inline void gravity_system_method3(hl::silva::Registry& registry)
+{
+    registry.view<Position, RigidBody, Gravity>.each<true>([](const Entity& entity, Position& position, RigidBody& body, Gravity& gravity) {
+        position.y += rigidBody.velocity;
+        rigidBody.velocity += rigidBody.acceleration;
+        position = gravity + position;
+    });
+}
 
 int main()
 {
@@ -29,25 +86,12 @@ int main()
 
     for (int i = 0; i < 100; i++) {
         hl::silva::Entity e = registry.spawn_entity();
-        e.emplace<Position>(rand(), rand(), rand())
+        e.emplace<Position>(rand(), rand(), std::max(rand(), 0))
             .emplace<RigidBody>(5, 0, 0) // You can chain emplaces when using the entity!
-            .emplace<Gravity>(0, -9.8, 0);
+            .emplace<Gravity>();
     }
 
-    // Only take the entities that have a RigidBody a Position and a Gravity component
-    registry.add_system(
-        "Gravity",
-        [](hl::silva::Registry& registry)
-        {
-            for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
-                // This is not an accurate Earth system force application
-                // It is just here for the example as pseudo code
-                position.y += rigidBody.velocity;
-                rigidBody.velocity += rigidBody.acceleration;
-                position = gravity + position;
-            }
-        }
-    );
+    registry.add_system("Gravity", gravity_system);
 
     registry.update(); // Call the update of every registered Systems
     return 0;
