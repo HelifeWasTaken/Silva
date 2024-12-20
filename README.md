@@ -10,42 +10,19 @@ If you are here for [SilvaCollection](https://github.com/HelifeWasTaken/SilvaCol
 
 ```cpp
 #include "Silva"
+#include <iostream> // iostream
+#include <ctime> // srand -> time
 
-struct Vec3 {
-    float x, y, z;
-
-    Vec3() : x(0), y(0), z(0) {}
-    Vec3(float px, float py, float pz) : x(px), y(py), z(pz) {}
-
-    Vec3(const Vec3& other) = default;
-    Vec3(Vec3&& other) = default;
-    Vec3 &operator=(Vec3&& other) = default;
-    Vec3 &operator=(const Vec3& other) = default;
-
-    friend Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}; }
-    Vec3& operator+=(const Vec3& b) { return *this = *this + b; }
+struct Gravity {
+    float x = 0, y = -9.81f, z = 0;
 };
 
-struct Gravity : public Vec3 {
-    Gravity() : Vec3(0, -9.8, 0) {}
-    Gravity(const Vec3& gravity) : Vec3(gravity) {}
+struct Position {
+    float x = 0, y = 0, z = 0;
 };
 
-struct Position : public Vec3 {
-    Position() = default;
-    Position(const Vec3& position) : Vec3(position) {}
-};
-
-struct RigidBody : public Vec3 {
-    float &mass = Vec3::x;
-    float &velocity = Vec3::y; 
-    float &accecleration = Vec3::z;
-
-    RigidBody(float pmass, float pvelocity, float pacceleration)
-        : Vec3(pmass, pvelocity, pacceleration)
-    {}
-
-    RigidBody() = default;
+struct RigidBody {
+    float mass = 0, velocity = 0, acceleration = 0;
 };
 
 // This is not an accurate Earth system force application, It is just here for the example
@@ -53,30 +30,57 @@ struct RigidBody : public Vec3 {
 static inline void gravity_system(hl::silva::Registry& registry)
 {
     // Only take the entities that have a RigidBody a Position and a Gravity component
-    for (auto&& [entity, position, rigidBody, gravity] : registry.view<Position, RigidBody, Gravity>()) {
-        position.y += rigidBody.velocity;
-        rigidBody.velocity += rigidBody.acceleration;
-        position = gravity + position;
+    for (auto&& [entity, position, body, gravity] : registry.view<Position, RigidBody, Gravity>()) {
+        // You can modify the requested entity components for all the entities that have them
+        // You can modify the entity here
+        // You can break the loop
+        // Removing a component from the entity if used by the system may cause a crash
+
+        position.x += gravity.x;
+        position.y += gravity.y;
+        position.z += gravity.z;
+
+        body.acceleration += body.mass * gravity.x;
+        body.acceleration += body.mass * gravity.y;
+        body.acceleration += body.mass * gravity.z;
+
+        body.velocity += body.acceleration;
+        body.acceleration = 0;
+
+        std::cout << "Entity " << entity.get_id() << " has a position of (" << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
     }
 }
 
 static inline void gravity_system_method2(hl::silva::Registry& registry)
 {
-    registry.view<Position, RigidBody, Gravity>.each([](Position& position, RigidBody& body, Gravity& gravity) {
-        position.y += rigidBody.velocity;
-        rigidBody.velocity += rigidBody.acceleration;
-        position = gravity + position;
+    registry.view<Position, RigidBody, Gravity>().each([](Position& position, RigidBody& body, Gravity& gravity) {
+            // ...
+            // You can modify the requested entity components for all the entities that have them
+            // You cannot modify the entity here
+            // You cannot break the loop
     });
 }
 
 static inline void gravity_system_method3(hl::silva::Registry& registry)
 {
-    registry.view<Position, RigidBody, Gravity>.each<true>([](const Entity& entity, Position& position, RigidBody& body, Gravity& gravity) {
-        position.y += rigidBody.velocity;
-        rigidBody.velocity += rigidBody.acceleration;
-        position = gravity + position;
+    registry.view<Position, RigidBody, Gravity>().each<true>([](hl::silva::Entity& entity, Position& position, RigidBody& body, Gravity& gravity) {
+            // ...
+            // You can modify the requested entity components for all the entities that have them
+            // you can modify the entity here
+            // You cannot break the loop
+            // Removing a component from the entity if used by the system may cause a crash
     });
 }
+
+struct _dummy {_dummy() { std::srand(std::time(nullptr)); }} dummy; // Seed the random number generator at the start of the program
+                                                                    // not clean just here for the example
+
+static const auto get_random_float = []() -> float { return (float)rand() / RAND_MAX; };
+static const unsigned int entity_max = 100;
+static const unsigned int max_iterations = 100;
+
+static const unsigned int entity_count = std::max(1U, (unsigned int)rand() % entity_max);
+static const unsigned int iterations = std::max(1U, (unsigned int)rand() % max_iterations);
 
 int main()
 {
@@ -84,17 +88,22 @@ int main()
 
     registry.register_components<Position, RigidBody, Gravity>();
 
-    for (int i = 0; i < 100; i++) {
+    for (unsigned int i = 0; i < entity_count; i++) {
         hl::silva::Entity e = registry.spawn_entity();
-        e.emplace<Position>(rand(), rand(), std::max(rand(), 0))
-            .emplace<RigidBody>(5, 0, 0) // You can chain emplaces when using the entity!
+
+        e.emplace<Position>(get_random_float(), get_random_float(), get_random_float())
+            .emplace<RigidBody>(5.f, 0.f, 0.f) // You can chain emplaces when using the entity!
             .emplace<Gravity>();
     }
 
     registry.add_system("Gravity", gravity_system);
 
-    registry.update(); // Call the update of every registered Systems
-    return 0;
+    for (unsigned int i = 0; i < iterations; i++) {
+        std::cout << "Iteration " << i << std::endl,
+        registry.update(); // Call the update of every registered Systems
+    }
+
+    //return 0;
 }
 ```
 

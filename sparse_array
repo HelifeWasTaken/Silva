@@ -235,7 +235,7 @@ public:
      */
     size_type get_index(value_type const &val) const
     {
-        return (&val >= _data.data() && &val <= _data.data() _data.size()) ?
+        return (&val >= _data.data() && &val <= _data.data() + _data.size()) ?
 		((reinterpret_cast<char *>(&val) -
                 reinterpret_cast<char *>(_data.data())) /
                 sizeof(value_type)) : 

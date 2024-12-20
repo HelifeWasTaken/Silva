@@ -941,7 +941,7 @@ public:
     }
 
     using each_t = std::function<void(Containers &...)>;
-    using each_entity_t = std::function<void(const Entity&, Containers &...)>;
+    using each_entity_t = std::function<void(Entity&, Containers &...)>;
 
     template<bool IncludeEntity>
     using which_each = typename std::conditional<IncludeEntity, each_entity_t, each_t>::type&&;
