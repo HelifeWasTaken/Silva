@@ -49,6 +49,8 @@
     #error "HL_SILVA_ENABLE_DEBUG is defined so must be either 0 or 1"
 #endif
 
+#define HL_SILVA_INVALID_ENTITY_ID (static_cast<Entity::Id>(-1))
+
 namespace hl
 {
 namespace silva
@@ -137,7 +139,7 @@ public:
     Entity(Entity&& entity)
         : _registry(entity._registry), _id(entity._id)
     {
-        entity._id = -1;
+        entity._id = HL_SILVA_INVALID_ENTITY_ID;
     }
 
     /**
@@ -372,7 +374,7 @@ public:
     {
         other._last_component_index = 0;
         other._entities_count = 0;
-        other._last_entity_id = -1;
+        other._last_entity_id = HL_SILVA_INVALID_ENTITY_ID;
     }
 
     /**
@@ -394,7 +396,7 @@ public:
 
         other._last_component_index = 0;
         other._entities_count = 0;
-        other._last_entity_id = -1;
+        other._last_entity_id = HL_SILVA_INVALID_ENTITY_ID;
 
         return *this;
     }
@@ -702,7 +704,7 @@ private:
     Entity::Id _entities_count = 0;
     dead_entities_t _to_kill_entities;
     dead_entities_t _killed_entities;
-    Entity::Id _last_entity_id = -1;
+    Entity::Id _last_entity_id = HL_SILVA_INVALID_ENTITY_ID;
 
     system_map_t _systems;
 };
@@ -995,7 +997,7 @@ Entity &Entity::operator=(Entity&& entity)
 {
     _registry = entity._registry;
     _id = entity._id;
-    entity._id = -1;
+    entity._id = HL_SILVA_INVALID_ENTITY_ID;
     return *this;
 }
 

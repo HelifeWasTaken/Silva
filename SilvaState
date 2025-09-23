@@ -17,6 +17,7 @@
  */
 #pragma once
 
+#include <string>
 #include <memory>
 #include <stack>
 #include <queue>
@@ -95,10 +96,12 @@ public:
 class AState : public IState
 {
 private:
-    StateManager *m_manager;
+    StateManager *m_manager = nullptr;
+
+protected:
+    AState() = default;
 
 public:
-    AState() = default;
     virtual ~AState() override = default;
 
     StateManager &state_manager() const;
@@ -172,7 +175,11 @@ private:
     bool _basic_update_coroutine()
     {
         _pop_states_internal();
+#if __cplusplus >= 201703L
         if constexpr(func == &IState::update) {
+#else
+        if (func == &IState::update) {
+#endif
             while (m_pending_states.empty() == false) {
                 auto state = std::move(m_pending_states.front());
                 state->init();
@@ -210,8 +217,15 @@ public:
     template<typename T, typename... Args>
     void push(Args&&... args)
     {
+#if __cplusplus >= 201403L
         auto state = std::make_unique<T>(std::forward<Args>(args)...);
-        ((AState *)state.get())->set_state_manager(this);
+#else
+        auto state = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+#endif
+        dynamic_cast<AState *>(state.get())->set_state_manager(this);
+
+        //((AState *)state.get())->set_state_manager(this);
+
         m_pending_states.push(std::move(state));
     }
 
@@ -284,6 +298,11 @@ public:
 #endif
 
 };
+
+StateManager &AState::state_manager() const
+{
+    return *m_manager; // Always consider manager never null
+}
 
 }
 }
