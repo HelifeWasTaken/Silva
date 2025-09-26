@@ -44,7 +44,7 @@ public:
      * @brief Construct a new Error object
      * @param  msg: The message of the error
      */
-    SilvaStateError(const std::string &msg) : _msg(msg) {}
+    inline constexpr SilvaStateError(const std::string &msg) : _msg(msg) {}
 
     /**
      * @brief Get the message of the error
@@ -58,7 +58,7 @@ public:
     /**
      * @brief Destroy the Error object
      */
-    ~SilvaStateError() = default;
+    inline ~SilvaStateError() = default;
 };
 
 /**
@@ -87,6 +87,10 @@ public:
 #endif  
 };
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
+#endif
 /**
  * @brief Abstract State class
  * 
@@ -102,15 +106,18 @@ protected:
     AState() = default;
 
 public:
-    virtual ~AState() override = default;
+    inline virtual ~AState() override = default;
 
-    StateManager &state_manager() const;
+    inline constexpr StateManager &state_manager() const;
 
-    void set_state_manager(StateManager *manager)
+    inline constexpr void set_state_manager(StateManager *manager)
     {
         m_manager = manager;
     }
 };
+#if __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * @brief State class
@@ -126,25 +133,25 @@ public:
     State() = default;
     virtual ~State() override = default;
 
-    virtual void init() override
+    inline constexpr virtual void init() override
     {
         throw SilvaStateError("init() not implemented");
     }
 
-    virtual void update() override
+    inline constexpr virtual void update() override
     {
         throw SilvaStateError("update() not implemented");
     }
 
 #ifdef SILVA_STATE_EVENT
-    virtual void event() override
+    inline constexpr virtual void event() override
     {
         throw SilvaStateError("event() not implemented");
     }
 #endif
 
 #ifdef SILVA_STATE_RENDER
-    virtual void render() override
+    inline constexpr virtual void render() override
     {
         throw SilvaStateError("render() not implemented");
     }
@@ -159,11 +166,11 @@ public:
 class StateManager
 {
 private:
-    std::stack<std::unique_ptr<AState>> m_states;
-    std::queue<std::unique_ptr<AState>> m_pending_states;
+    std::stack<std::unique_ptr<AState>> m_states{};
+    std::queue<std::unique_ptr<AState>> m_pending_states{};
     std::size_t m_pop_count = 0;
 
-    void _pop_states_internal()
+    inline constexpr void _pop_states_internal()
     {
         for (std::size_t i = 0; i < m_pop_count; i++) {
             m_states.pop();
@@ -172,10 +179,10 @@ private:
 
     // Function pointer to the update coroutine
     template<void(IState::*func)()>
-    bool _basic_update_coroutine()
+    inline constexpr bool _basic_update_coroutine()
     {
         _pop_states_internal();
-#if __cplusplus >= 201703L
+#if __cplusplus >= 201700L
         if constexpr(func == &IState::update) {
 #else
         if (func == &IState::update) {
@@ -200,12 +207,12 @@ public:
     /**
      * @brief Construct a new StateManager object
      */
-    StateManager() = default;
+    inline StateManager() = default;
 
     /**
      * @brief Destroy the StateManager object
      */
-    ~StateManager() = default;
+    inline ~StateManager() = default;
 
     /**
      * @brief Emplace a new state
@@ -215,9 +222,9 @@ public:
      * @param args The arguments of the state
      */
     template<typename T, typename... Args>
-    void push(Args&&... args)
+    inline constexpr void push(Args&&... args)
     {
-#if __cplusplus >= 201403L
+#if __cplusplus >= 201400L
         auto state = std::make_unique<T>(std::forward<Args>(args)...);
 #else
         auto state = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
@@ -237,7 +244,7 @@ public:
      * @param args The arguments of the state
      */
     template<typename T, typename... Args>
-    void replace(Args&&... args)
+    inline constexpr void replace(Args&&... args)
     {
         stop(true);
         push<T>(std::forward<Args>(args)...);
@@ -246,7 +253,7 @@ public:
     /**
      * @brief Pop a state
      */
-    void pop()
+    inline constexpr void pop()
     {
         m_pop_count = std::min(m_pop_count + 1, m_states.size());
     }
@@ -256,7 +263,7 @@ public:
      * @param remove_pending If true, the pending state will be removed (default: false
      * @note This function is not immediate, it will stop after the next update()
      */
-    void stop(bool remove_pending = false)
+    inline constexpr void stop(bool remove_pending = false)
     {
         if (remove_pending) {
             while (m_pending_states.empty() == false) {
@@ -270,7 +277,7 @@ public:
      * @brief Update the current state
      * @return true If the state has been updated
      */
-    bool update()
+    inline constexpr bool update()
     {
         return _basic_update_coroutine<&IState::update>();
     }
@@ -280,7 +287,7 @@ public:
      * @brief Event the current state
      * @return true If the state has been evented
      */
-    bool event()
+    inline constexpr bool event()
     {
         return _basic_update_coroutine<&IState::event>();
     }
@@ -291,7 +298,7 @@ public:
      * @brief Render the current state
      * @return true If the state has been rendered
      */
-    void render()
+    inline constexpr void render()
     {
         return _basic_update_coroutine<&IState::render>()
     }
@@ -299,7 +306,7 @@ public:
 
 };
 
-StateManager &AState::state_manager() const
+inline constexpr StateManager &AState::state_manager() const
 {
     return *m_manager; // Always consider manager never null
 }

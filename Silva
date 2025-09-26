@@ -40,7 +40,7 @@
 
 // Enable debug mode by default so that the user can see the error messages
 #ifndef HL_SILVA_ENABLE_DEBUG
-    #define HL_SILVA_DEBUG 1
+    #define HL_SILVA_DEBUG 0
 #elif HL_SILVA_ENABLE_DEBUG == 1
     #define HL_SILVA_DEBUG 1
 #elif HL_SILVA_ENABLE_DEBUG == 0
@@ -116,27 +116,27 @@ private:
      * @param  id: The id of the entity
      * @retval None
      */
-    explicit Entity(Registry& registry, const Id &id) : _registry(registry), _id(id) {}
+    explicit inline Entity(Registry& registry, const Id &id) : _registry(registry), _id(id) {}
 
 public:
     /**
      * @brief Copies an entity
      * @param entity: The other entity
      */
-    Entity(const Entity& entity) = default;
+    inline Entity(const Entity& entity) = default;
 
     /**
      * @brief Copies an entity
      * @param entity: The other entity
      * @retval Entity: The newly copied entity
      */
-    Entity &operator=(const Entity& entity) = default;
+    inline Entity &operator=(const Entity& entity) = default;
 
     /**
      * @brief Move an entity
      * @param entity: The other entity
      */
-    Entity(Entity&& entity)
+    inline Entity(Entity&& entity)
         : _registry(entity._registry), _id(entity._id)
     {
         entity._id = HL_SILVA_INVALID_ENTITY_ID;
@@ -147,7 +147,7 @@ public:
      * @param entity: The other entity
      * @retval Entity: The newly moved entity
      */
-    Entity &operator=(Entity&& entity);
+    inline Entity &operator=(Entity&& entity);
 
     /**
      * @brief Construct a new Entity object from an existing id
@@ -163,13 +163,13 @@ public:
     /**
      * @brief Destroy the Entity object
      */
-    ~Entity() = default;
+    inline ~Entity() = default;
 
     /**
      * @brief Get the Id of the entity
      * @retval The id of the entity
      */
-    inline const Id &get_id() const
+    inline Id get_id() const
     {
         return _id;
     }
@@ -177,7 +177,7 @@ public:
     /**
      * @brief To string method
      */
-    inline std::string to_string() const
+    inline const std::string to_string() const
     {
         return "hl::silva::Entity(" + std::to_string(_id) + ")";
     }
@@ -283,15 +283,15 @@ class Registry
 public:
     using anonymous_t = std::any;
 
-    using dead_entities_t = std::unordered_set<Entity::Id>;
+    using dead_entities_t = std::vector<Entity::Id>;
 
     using component_index_t = std::size_t;
-    using component_registry_t = std::unordered_map<std::type_index, component_index_t>;
+
+    // using component_registry_t = std::unordered_map<std::type_index, component_index_t>;
+
     template <typename Component>
     using component_sparse_array_t = hl::silva::sparse_array<Component>;
-    using components_dynamic_array_t = std::vector<anonymous_t>;
     using component_removal_system_t = std::function<void(const Entity::Id&)>;
-    using component_removal_system_map_t = std::vector<component_removal_system_t>;
 
     using system_t = std::function<void(Registry &)>;
     template<typename ...Components>
@@ -311,68 +311,85 @@ private:
     }
 
     /**
+     * @brief  The global typeid counter of each component (global to all registries)
+     * @retval Reference to the counter
+     */
+    static inline size_t& _global_typeid_counter()
+    {
+        static size_t counter = 0;
+        return counter;
+    }
+
+    /**
+     * @brief  Generates a unique index for each component type
+     * @tparam Component: The component type
+     * @retval The index of the component
+     */
+    template<class Component>
+    static inline component_index_t _global_typeid()
+    {
+        static const size_t id = []{
+            static size_t& last_id = _global_typeid_counter();
+            return last_id++;
+        }();
+        return id;
+    }
+
+    /**
      * @brief  Return the index of the component
      * @tparam Component: The component type
      * @retval The index of the component
      */
     template <class Component>
-#ifdef HL_SILVA_DEBUG
-    component_index_t _type_index() const
+    inline component_index_t _type_index()
     {
-        auto it = _components_types_index.find(std::type_index(typeid(Component)));
-        if (it == _components_types_index.end())
-        {
-            throw SilvaError("Component " + std::string(typeid(Component).name()) + " is not registered");
+        static const size_t id = _global_typeid<Component>();
+
+        if (_components.non_null(id) == false) {
+            _components.emplace<std::pair<anonymous_t, component_removal_system_t>>(id,
+                anonymous_t(component_sparse_array_t<Component>()),
+                component_removal_system_t([this](const Entity::Id &e){ this->remove_component<Component>(e); })
+            );
         }
-        return it->second;
+        return id;
     }
-#else
-    inline component_index_t _type_index() const
-    {
-        return _components_types_index.at(std::type_index(typeid(Component)));
-    }
-#endif
 
 public:
     /**
      * @brief Construct a new registry
      */
-    Registry() = default;
+    inline Registry() = default;
 
     /**
      * @brief Destroy the registry
      */
-    ~Registry() = default;
+    inline ~Registry() = default;
 
     /**
      * @brief Forbid a registry copy
      * @param other: The other registry
      */
-    Registry(const Registry&) = default;
+    inline Registry(const Registry&) = default;
 
     /**
      * @brief Forbid a registry assignment
      * @param other: The other registry
      * @retval Registry&
      */
-    Registry& operator=(const Registry&) = default;
+    inline Registry& operator=(const Registry&) = default;
 
     /**
      * @brief Move a registry
      * @param other: The other registry
      */
-    Registry(Registry&& other)
-            : _last_component_index(other._last_component_index)
-            , _components_types_index(std::move(other._components_types_index))
-            , _components(std::move(other._components))
-            , _remove_system_methods(std::move(other._remove_system_methods))
+    inline Registry(Registry&& other)
+            : _components(std::move(other._components))
             , _entities_count(other._entities_count)
             , _to_kill_entities(std::move(other._to_kill_entities))
             , _killed_entities(std::move(other._killed_entities))
             , _last_entity_id(other._last_entity_id)
             , _systems(std::move(other._systems))
     {
-        other._last_component_index = 0;
         other._entities_count = 0;
         other._last_entity_id = HL_SILVA_INVALID_ENTITY_ID;
     }
@@ -382,19 +399,15 @@ public:
      * @param other: The other registry
      * @retval Registry&
      */
-    Registry& operator=(Registry&& other)
+    inline Registry& operator=(Registry&& other)
     {
-        _last_component_index = other._last_component_index;
-        _components_types_index = std::move(other._components_types_index);
         _components = std::move(other._components);
-        _remove_system_methods = std::move(other._remove_system_methods);
         _entities_count = other._entities_count;
         _to_kill_entities = std::move(other._to_kill_entities);
         _killed_entities = std::move(other._killed_entities);
         _last_entity_id = other._last_entity_id;
         _systems = std::move(other._systems);
 
-        other._last_component_index = 0;
         other._entities_count = 0;
         other._last_entity_id = HL_SILVA_INVALID_ENTITY_ID;
 
@@ -408,11 +421,11 @@ public:
      * @retval true  Is valid 
      * @retval false Is not valid
      */
-    bool is_entity_valid(const Entity::Id &from) const
+    inline bool is_entity_valid(const Entity::Id &from) const
     {
         if (_last_entity_id >= from) // Is in the range of the alive entities
         {
-            return _killed_entities.find(from) == _killed_entities.end(); // Has it been killed ?
+            return std::find(_killed_entities.begin(), _killed_entities.end(), from) == _killed_entities.end();
         }
         return false;
     }
@@ -458,16 +471,8 @@ public:
      * @tparam Component: The component type
      */
     template <class Component>
-    void register_component()
+    inline void register_component()
     {
-        if (_components_types_index.find(std::type_index(typeid(Component))) != _components_types_index.end())
-        {
-            throw SilvaError("Cannot register twice a component. '" + std::string(typeid(Component).name()) + "' is already registered");
-        }
-
-        _components_types_index[std::type_index(typeid(Component))] = _last_component_index++,
-        _components.push_back(component_sparse_array_t<Component>()),
-        _remove_system_methods.push_back([this](const Entity::Id &id) { this->remove_component<Component>(id); });
     }
 
     /**
@@ -477,9 +482,7 @@ public:
     template <class ...Components>
     inline void register_components()
     {
-        (register_component<Components>(), ...);
     }
-
 
     /**
      * @brief  Get the component array of the template type
@@ -489,33 +492,23 @@ public:
     template <class Component>
     inline component_sparse_array_t<Component> &get_components()
     {
-        return _component_cast<Component>(_components[_type_index<Component>()]);
-    }
-
-    /**
-     * @brief  Get the component array of the template type (const)
-     * @tparam Component: The component type
-     * @retval component_sparse_array_t<Component>&: The component array
-     */
-    template <class Component>
-    inline const component_sparse_array_t<Component> &get_components() const
-    {
-        return _component_cast<Component>(_components[_type_index<Component>()]);
+        const size_t index = _type_index<Component>();
+        return _component_cast<Component>(_components[index].value().first);
     }
 
     /**
      * @brief  Create a new entity
      * @retval New entity
      */
-    Entity spawn_entity()
+    inline Entity spawn_entity()
     {
         if (_killed_entities.empty())
         {
             return Entity::from_id(*this, _entities_count++);
         }
 
-        const Entity::Id random_id = *_killed_entities.begin();
-        _killed_entities.erase(random_id);
+        const Entity::Id random_id = _killed_entities.back();
+        _killed_entities.pop_back();
         return Entity::from_id(*this, random_id);
     }
 
@@ -525,14 +518,14 @@ public:
      */
     inline void kill_entity(const Entity::Id &id)
     {
-        _to_kill_entities.insert(id);
+        _to_kill_entities.push_back(id);
     }
 
     /**
      * @brief  Add a system to the Registry
      * @param  sys: The system to add
      */
-    void add_system(const std::string& name, const system_t &sys)
+    inline void add_system(const std::string& name, const system_t &sys)
     {
         if (_systems.find(name) != _systems.end())
         {
@@ -545,7 +538,7 @@ public:
      * @brief  Add a system to the Registry (rvalue ref version)
      * @param  sys: The system to add
      */
-    void add_system(const std::string& name, system_t &&sys)
+    inline void add_system(const std::string& name, system_t &&sys)
     {
         if (_systems.find(name) != _systems.end())
         {
@@ -570,7 +563,7 @@ public:
         });
     }
 
-    void remove_system(const std::string& name)
+    inline void remove_system(const std::string& name)
     {
         auto it = _systems.find(name);
 
@@ -586,17 +579,30 @@ public:
      *         Kills the entities that were marked as "should be killed" last update
      *         before updating again
      */
-    void update()
+    inline void update()
     {
         if (_to_kill_entities.empty() == false)
         {
             for (const auto &e : _to_kill_entities)
             {
-                for (const auto &f : _remove_system_methods)
+                for (const auto& c : _components)
                 {
-                    f(e);
+                    if (c.has_value() == false) continue;
+                    c.value().second(e);
                 }
-                _killed_entities.insert(e);
+                if (e == _last_entity_id)
+                {
+                    _last_entity_id--;
+
+                    for (; _last_entity_id != HL_SILVA_INVALID_ENTITY_ID &&
+                        _killed_entities.size() > 0 &&
+                        _killed_entities.back() == _last_entity_id;
+                        _last_entity_id--, _killed_entities.pop_back());
+                }
+                else
+                {
+                    _killed_entities.insert(std::lower_bound(_killed_entities.begin(), _killed_entities.end(), e), e);
+                }
             }
             _to_kill_entities.clear();
         }
@@ -622,8 +628,8 @@ public:
      * @retval Component&
      */
     template<typename Component>
+    inline Component &get_component(const Entity::Id &id)
 #if HL_SILVA_DEBUG
-    Component &get_component(const Entity::Id &id)
     {
         auto& ref = get_components<Component>()[id];
         if (ref.has_value() == false)
@@ -633,30 +639,6 @@ public:
         return ref.value();
     }
 #else
-    inline Component &get_component(const Entity::Id &id)
-    {
-        return get_components<Component>()[id].value();
-    }
-#endif
-    /**
-     * @brief Get the component of an entity (const)
-     * @param e: The entity
-     * @tparam Component: The component
-     * @retval Component&
-     */
-    template<typename Component>
-#if HL_SILVA_DEBUG
-    const Component &get_component(const Entity::Id &id) const
-    {
-        const auto& ref = get_components<Component>()[id];
-        if (ref.has_value() == false)
-        {
-            throw SilvaError("Entity " + std::to_string(id) + " does not have the component " + std::string(typeid(Component).name()));
-        }
-        return ref.value();
-    }
-#else
-    inline const Component &get_component(const Entity::Id &id) const
     {
         return get_components<Component>()[id].value();
     }
@@ -696,17 +678,16 @@ public:
     }
 
 private:
-    component_index_t _last_component_index = 0;
-    component_registry_t _components_types_index;
-    components_dynamic_array_t _components;
-    component_removal_system_map_t _remove_system_methods;
+    component_sparse_array_t<
+        std::pair<anonymous_t, component_removal_system_t>
+    > _components{};
 
     Entity::Id _entities_count = 0;
-    dead_entities_t _to_kill_entities;
-    dead_entities_t _killed_entities;
+    dead_entities_t _to_kill_entities{};
+    dead_entities_t _killed_entities{};
     Entity::Id _last_entity_id = HL_SILVA_INVALID_ENTITY_ID;
 
-    system_map_t _systems;
+    system_map_t _systems{};
 };
 
 /**
@@ -797,7 +778,7 @@ public:
          * @param  index: The index of the iterator
          * @param  end: The end of the iterator (number of entities should be specified)
          */
-        iterator(Zipper::value_type_t &vref,
+        inline iterator(Zipper::value_type_t &vref,
                 std::size_t index,
                 std::size_t end,
                 Registry &r)
@@ -812,29 +793,29 @@ public:
         /**
          * @brief Destructor of the iterator
          */
-        ~iterator() = default;
+        inline ~iterator() = default;
 
         /**
          * @brief  Copy constructor of the iterator
          * @param &it: The iterator to copy
          */
-        iterator(const iterator &it) = default;
+        inline iterator(const iterator &it) = default;
 
         /**
          * @brief  Copy assignment of the iterator
          * @param &it: The iterator to copy
          */
-        iterator &operator=(const iterator &it) = default;
+        inline iterator &operator=(const iterator &it) = default;
 
         /**
          * @brief  Move constructor of the iterator (deleted)
          */
-        iterator(iterator &&it) = delete;
+        inline iterator(iterator &&it) = delete;
 
         /**
          * @brief  Move assignment of the iterator (deleted)
          */
-        iterator &operator=(iterator &&it) = delete;
+        inline iterator &operator=(iterator &&it) = delete;
 
         /**
          * @brief Return the index of the iterator (i.e. the entity id)
@@ -873,7 +854,7 @@ public:
      * @brief  Construct a new zipper object
      * @param  &r: The registry to use
      */
-    Zipper(Registry &r)
+    inline Zipper(Registry &r)
         : _values(r.get_components<Containers>()...), _end(_values, r.entities_count(), r.entities_count(), r), _begin(_values, 0, r.entities_count(), r)
         , _registry(r)
     {
@@ -882,29 +863,29 @@ public:
     /**
      * @brief  Destroy the zipper
      */
-    ~Zipper() = default;
+    inline ~Zipper() = default;
 
     /**
      * @brief Copy constructor of the zipper
      * @param z: The zipper to copy
      */
-    Zipper(const Zipper &z) = default;
+    inline Zipper(const Zipper &z) = default;
 
     /**
      * @brief Copy assignment of the zipper
      * @param z: The zipper to copy
      */
-    Zipper &operator=(const Zipper &z) = default;
+    inline Zipper &operator=(const Zipper &z) = default;
 
     /**
      * @brief Move constructor of the zipper (deleted)
      */
-    Zipper(Zipper &&z) = delete;
+    inline Zipper(Zipper &&z) = delete;
 
     /**
      * @brief Move assignment of the zipper (deleted)
      */
-    Zipper &operator=(Zipper &&z) = delete;
+    inline Zipper &operator=(Zipper &&z) = delete;
 
     /**
      * @brief  Return the begin iterator
@@ -955,7 +936,7 @@ public:
      * @retval Reference of the zipper
      */
     template<bool IncludeEntity = false>
-    void each(which_each<IncludeEntity> f)
+    inline void each(which_each<IncludeEntity> f)
     {
         if constexpr (IncludeEntity)
         {
@@ -978,7 +959,7 @@ public:
      * @param &os: The output stream
      * @param &z: The zipper
      */
-    inline friend std::ostream &operator<<(std::ostream &os, const Zipper<Containers...> &z)
+    inline const friend std::ostream &operator<<(std::ostream &os, const Zipper<Containers...> &z)
     {
         os << "hl::silva::Zipper<";
         return ((os << typeid(Containers).name() << ", "), ...) << ">";
@@ -993,7 +974,7 @@ private:
 
 // Entity methods implementation
 
-Entity &Entity::operator=(Entity&& entity)
+inline Entity &Entity::operator=(Entity&& entity)
 {
     _registry = entity._registry;
     _id = entity._id;
@@ -1075,12 +1056,12 @@ inline const pure_type_t<T> &get(U &&it)
 namespace std
 {
 
-std::string to_string(const hl::silva::Entity &e)
+constexpr std::string to_string(const hl::silva::Entity &e)
 {
     return e.to_string();
 }
 
-std::string to_string(const hl::silva::Registry &r)
+constexpr std::string to_string(const hl::silva::Registry &r)
 {
     return r.to_string();
 }
