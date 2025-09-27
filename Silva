@@ -281,7 +281,8 @@ using View = Zipper<Components...>;
 class Registry
 {
 public:
-    using anonymous_t = std::any;
+
+    using anonymous_t = std::unique_ptr<void, std::function<void(void*)>>;
 
     using dead_entities_t = std::vector<Entity::Id>;
 
@@ -307,7 +308,8 @@ private:
     template <class Component>
     inline component_sparse_array_t<Component> &_component_cast(anonymous_t &anon)
     {
-        return std::any_cast<component_sparse_array_t<Component> &>(anon);
+        // return std::any_cast<component_sparse_array_t<Component> &>(anon);
+        return *static_cast<component_sparse_array_t<Component> *>(anon.get());
     }
 
     /**
@@ -346,8 +348,10 @@ private:
         static const size_t id = _global_typeid<Component>();
 
         if (_components.non_null(id) == false) {
+            anonymous_t::deleter_type deleter = [](void* p){ delete static_cast<component_sparse_array_t<Component>*>(p); };
+            anonymous_t v(new component_sparse_array_t<Component>(), deleter);
             _components.emplace<std::pair<anonymous_t, component_removal_system_t>>(id,
-                anonymous_t(component_sparse_array_t<Component>()),
+                std::move(v),
                 component_removal_system_t([this](const Entity::Id &e){ this->remove_component<Component>(e); })
             );
         }
@@ -369,14 +373,14 @@ public:
      * @brief Forbid a registry copy
      * @param other: The other registry
      */
-    inline Registry(const Registry&) = default;
+    inline Registry(const Registry&) = delete;
 
     /**
      * @brief Forbid a registry assignment
      * @param other: The other registry
      * @retval Registry&
      */
-    inline Registry& operator=(const Registry&) = default;
+    inline Registry operator=(const Registry&) = delete;
 
     /**
      * @brief Move a registry
@@ -976,7 +980,7 @@ private:
 
 inline Entity &Entity::operator=(Entity&& entity)
 {
-    _registry = entity._registry;
+    _registry = std::move(entity._registry);
     _id = entity._id;
     entity._id = HL_SILVA_INVALID_ENTITY_ID;
     return *this;

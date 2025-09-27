@@ -53,7 +53,7 @@ public:
     sparse_array(const size_type& default_size=16)
     {
         assert(default_size > 0);
-        _data.assign(default_size, std::nullopt);
+        for (_data.resize(default_size); _data.size() < default_size; _data.emplace_back(std::nullopt));
     }
 
     /**
@@ -66,7 +66,7 @@ public:
      * @param other: The other sparse array to copy
      * @retval None
      */
-    sparse_array(const sparse_array &other) = default;
+    sparse_array(const sparse_array &other) = delete;
 
     /**
      * @brief Move constructor
@@ -80,7 +80,7 @@ public:
      * @param other: The other sparse array to copy
      * @retval The sparse array
      */
-    sparse_array &operator=(const sparse_array &other) = default;
+    sparse_array &operator=(const sparse_array &other) = delete;
 
     /**
      * @brief Move assignment operator
